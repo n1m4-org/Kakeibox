@@ -18,6 +18,10 @@ import kotlinx.coroutines.flow.combine
 import com.kakeibox.data.MonthSummary
 import com.kakeibox.data.PaymentMethod
 import com.kakeibox.data.Period
+import com.kakeibox.data.PeriodTotal
+import com.kakeibox.data.YearReport
+import com.kakeibox.data.periodTotals
+import com.kakeibox.data.recentPeriods
 import com.kakeibox.data.Recurring
 import com.kakeibox.data.RecurringRunner
 import com.kakeibox.data.SearchFilter
@@ -93,6 +97,32 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 computeTodayStatuses(settings, spent, LocalDate.now(), p.start)
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** 前の期間の集計（前月比） */
+    val previousSummary: StateFlow<MonthSummary> = period
+        .flatMapLatest { p -> repo.observePeriod(p.previous()).map { MonthSummary.from(it) } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MonthSummary.EMPTY)
+
+    /** 表示中の期間までの直近12期間の推移 */
+    val trend: StateFlow<List<PeriodTotal>> = period
+        .flatMapLatest { p ->
+            val periods = recentPeriods(p, 12)
+            repo.observeRange(periods.first().start, p.endInclusive).map { periodTotals(it, periods) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** 年間レポート */
+    private val _year = MutableStateFlow(LocalDate.now().year)
+    val yearReport: StateFlow<YearReport?> = combine(_year, settingsStore.settings) { y, s -> y to s.periodStartDay }
+        .flatMapLatest { (y, startDay) ->
+            val periods = YearReport.periodsOf(y, startDay)
+            repo.observeRange(periods.first().start, periods.last().endInclusive)
+                .map { YearReport.build(y, startDay, it, LocalDate.now()) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun changeYear(delta: Int) { _year.value += delta }
+    fun thisYear() { _year.value = LocalDate.now().year }
 
     /** 検索条件と結果 */
     private val _searchFilter = MutableStateFlow(SearchFilter())
