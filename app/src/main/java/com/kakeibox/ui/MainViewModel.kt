@@ -1,0 +1,49 @@
+package com.kakeibox.ui
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.kakeibox.data.AppDatabase
+import com.kakeibox.data.BudgetStore
+import com.kakeibox.data.MonthSummary
+import com.kakeibox.data.Transaction
+import com.kakeibox.data.TransactionRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.time.YearMonth
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class MainViewModel(app: Application) : AndroidViewModel(app) {
+    private val repo = TransactionRepository(AppDatabase.get(app).transactionDao())
+    private val budgetStore = BudgetStore(app)
+
+    private val _month = MutableStateFlow(YearMonth.now())
+    val month: StateFlow<YearMonth> = _month.asStateFlow()
+
+    val transactions: StateFlow<List<Transaction>> = _month
+        .flatMapLatest { repo.observeMonth(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val summary: StateFlow<MonthSummary> = transactions
+        .map { MonthSummary.from(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MonthSummary.EMPTY)
+
+    val budget: StateFlow<Long> = budgetStore.budget
+
+    fun prevMonth() { _month.value = _month.value.minusMonths(1) }
+    fun nextMonth() { _month.value = _month.value.plusMonths(1) }
+    fun thisMonth() { _month.value = YearMonth.now() }
+
+    suspend fun find(id: Long): Transaction? = repo.findById(id)
+
+    fun save(tx: Transaction) = viewModelScope.launch { repo.save(tx) }
+    fun delete(tx: Transaction) = viewModelScope.launch { repo.delete(tx) }
+    fun setBudget(value: Long) = budgetStore.set(value)
+}

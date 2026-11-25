@@ -1,0 +1,8 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- ノート -->
+    <path android:fillColor="#FFFFFF" android:pathData="M36,30h36a4,4 0,0 1,4 4v40a4,4 0,0 1,-4 4h-36a4,4 0,0 1,-4 -4v-40a4,4 0,0 1,4 -4z"/>
+    <!-- ¥マーク -->
+    <path android:fillColor="#00897B" android:pathData="M45,40h5l4,8 4,-8h5l-6,11h5v4h-6v3h6v4h-6v6h-4v-6h-6v-4h6v-3h-6v-4h5z"/>
+</vector>
