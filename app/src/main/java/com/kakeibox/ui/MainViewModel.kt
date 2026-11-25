@@ -28,6 +28,8 @@ import com.kakeibox.data.Recurring
 import com.kakeibox.data.RecurringRunner
 import com.kakeibox.data.SearchFilter
 import com.kakeibox.data.Template
+import com.kakeibox.notify.BudgetAlerts
+import com.kakeibox.notify.Reminder
 import com.kakeibox.data.search
 import kotlinx.coroutines.flow.flowOf
 import com.kakeibox.data.quickExpense
@@ -55,7 +57,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val settingsStore = AppGraph.settingsStore(app)
 
     val settings: StateFlow<AppSettings> = settingsStore.settings
-    fun updateSettings(transform: (AppSettings) -> AppSettings) = settingsStore.update(transform)
+    fun updateSettings(transform: (AppSettings) -> AppSettings) {
+        val before = settingsStore.settings.value
+        settingsStore.update(transform)
+        val after = settingsStore.settings.value
+        if (before.reminderEnabled != after.reminderEnabled || before.reminderMinutes != after.reminderMinutes) {
+            Reminder.apply(getApplication())
+        }
+        if (!before.budgetAlertEnabled && after.budgetAlertEnabled) {
+            viewModelScope.launch { BudgetAlerts.check(getApplication()) }
+        }
+        if (before.periodStartDay != after.periodStartDay) refreshWidgets()
+    }
 
     /** 今日を含む期間（締め日の設定に追従） */
     val currentPeriod: StateFlow<Period> = settingsStore.settings

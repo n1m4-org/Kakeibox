@@ -6,6 +6,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.NotificationImportant
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Weekend
 import androidx.compose.material.icons.outlined.DateRange
@@ -17,6 +20,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import com.kakeibox.notify.Notifications
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kakeibox.data.AppSettings
 import com.kakeibox.data.PaymentMethod
@@ -39,10 +58,30 @@ class SettingsNavigation(
 @Composable
 fun SettingsScreen(vm: MainViewModel, contentPadding: PaddingValues, navigation: SettingsNavigation) {
     val settings by vm.settings.collectAsStateWithLifecycle()
-    SettingsContent(settings, contentPadding, navigation, onUpdate = vm::updateSettings)
+    val context = LocalContext.current
+    var allowed by remember { mutableStateOf(Notifications.canPost(context)) }
+    var pending by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        allowed = granted
+        pending?.invoke()
+        pending = null
+    }
+    SettingsContent(
+        settings, contentPadding, navigation,
+        onUpdate = vm::updateSettings,
+        notificationsAllowed = allowed,
+        withNotificationPermission = { action ->
+            if (Notifications.canPost(context) || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                action()
+            } else {
+                pending = action
+                launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        },
+    )
 }
 
-private enum class SettingsDialog { THEME, PERIOD_START, PAYMENT, PAYDAY }
+private enum class SettingsDialog { THEME, PERIOD_START, PAYMENT, PAYDAY, REMINDER_TIME }
 
 @Composable
 internal fun SettingsContent(
@@ -50,6 +89,9 @@ internal fun SettingsContent(
     contentPadding: PaddingValues,
     navigation: SettingsNavigation,
     onUpdate: ((AppSettings) -> AppSettings) -> Unit,
+    notificationsAllowed: Boolean = true,
+    /** 通知の許可を確認してから action を実行する */
+    withNotificationPermission: (action: () -> Unit) -> Unit = { it() },
 ) {
     var dialog by rememberSaveable { mutableStateOf<SettingsDialog?>(null) }
 
@@ -97,6 +139,49 @@ internal fun SettingsContent(
             }
         }
 
+        item { SettingsSection("通知") }
+        if (!notificationsAllowed && (settings.reminderEnabled || settings.budgetAlertEnabled)) {
+            item {
+                Text(
+                    "通知が許可されていません。端末の設定アプリから Kakeibox の通知を許可してください。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+        }
+        item {
+            SettingsSwitch(
+                "入力リマインダー",
+                Icons.Outlined.NotificationsActive,
+                settings.reminderEnabled,
+                summary = "毎日 ${minutesLabel(settings.reminderMinutes)} に通知（その日の記録がないときだけ）",
+                onCheckedChange = { on ->
+                    if (on) withNotificationPermission { onUpdate { it.copy(reminderEnabled = true) } }
+                    else onUpdate { it.copy(reminderEnabled = false) }
+                },
+            )
+        }
+        if (settings.reminderEnabled) {
+            item {
+                SettingsItem("通知の時刻", Icons.Outlined.Schedule, minutesLabel(settings.reminderMinutes)) {
+                    dialog = SettingsDialog.REMINDER_TIME
+                }
+            }
+        }
+        item {
+            SettingsSwitch(
+                "使いすぎ通知",
+                Icons.Outlined.NotificationImportant,
+                settings.budgetAlertEnabled,
+                summary = "1日・週・月の予算の80%と100%を超えたときに通知",
+                onCheckedChange = { on ->
+                    if (on) withNotificationPermission { onUpdate { it.copy(budgetAlertEnabled = true) } }
+                    else onUpdate { it.copy(budgetAlertEnabled = false) }
+                },
+            )
+        }
+
         item { SettingsSection("表示") }
         item {
             SettingsItem("テーマ", Icons.Outlined.DarkMode, settings.theme.label) { dialog = SettingsDialog.THEME }
@@ -136,6 +221,11 @@ internal fun SettingsContent(
             onDismiss = { dialog = null },
             onSelect = { d -> onUpdate { it.copy(payday = d) }; dialog = null },
         )
+        SettingsDialog.REMINDER_TIME -> TimeDialog(
+            initialMinutes = settings.reminderMinutes,
+            onDismiss = { dialog = null },
+            onConfirm = { m -> onUpdate { it.copy(reminderMinutes = m) }; dialog = null },
+        )
         null -> Unit
     }
 }
@@ -148,4 +238,19 @@ internal fun paydayLabel(day: Int): String = when (day) {
     0 -> "設定しない"
     31 -> "毎月末"
     else -> "毎月${day}日"
+}
+
+internal fun minutesLabel(m: Int): String = "%d:%02d".format(m / 60, m % 60)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimeDialog(initialMinutes: Int, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
+    val state = rememberTimePickerState(initialHour = initialMinutes / 60, initialMinute = initialMinutes % 60, is24Hour = true)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("通知の時刻") },
+        text = { TimePicker(state) },
+        confirmButton = { TextButton(onClick = { onConfirm(state.hour * 60 + state.minute) }) { Text("OK") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("キャンセル") } },
+    )
 }

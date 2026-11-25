@@ -37,6 +37,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY date, id")
     suspend fun all(): List<Transaction>
 
+    @Query("SELECT COUNT(*) FROM transactions WHERE date = :day")
+    suspend fun countOn(day: Long): Int
+
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun findById(id: Long): Transaction?
 

@@ -6,6 +6,7 @@ import com.kakeibox.data.AppDatabase
 import com.kakeibox.data.BudgetStore
 import com.kakeibox.data.RecurringDao
 import com.kakeibox.data.SettingsStore
+import com.kakeibox.notify.BudgetAlerts
 import com.kakeibox.data.TemplateDao
 import com.kakeibox.data.TransactionRepository
 import com.kakeibox.widget.DailyBudgetWidget
@@ -23,7 +24,10 @@ object AppGraph {
                 val app = context.applicationContext
                 TransactionRepository(
                     dao = AppDatabase.get(app).transactionDao(),
-                    onChanged = { refreshWidgets(app) },
+                    onChanged = {
+                        refreshWidgets(app)
+                        BudgetAlerts.check(app)
+                    },
                 )
             }.also { repo = it }
         }

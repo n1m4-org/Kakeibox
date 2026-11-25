@@ -24,6 +24,12 @@ data class AppSettings(
     val payday: Int = 0,
     /** 給料日が土日なら直前の金曜にする */
     val paydayShiftWeekend: Boolean = true,
+    /** 入力リマインダー */
+    val reminderEnabled: Boolean = false,
+    /** リマインダーの時刻（0:00からの分） */
+    val reminderMinutes: Int = 21 * 60,
+    /** 使いすぎ通知 */
+    val budgetAlertEnabled: Boolean = false,
 )
 
 /** 設定の保存（SharedPreferences）と購読 */
@@ -49,6 +55,9 @@ class SettingsStore(context: Context) {
             .putString(KEY_DEFAULT_PAYMENT, s.defaultPayment.name)
             .putInt(KEY_PAYDAY, s.payday)
             .putBoolean(KEY_PAYDAY_SHIFT, s.paydayShiftWeekend)
+            .putBoolean(KEY_REMINDER, s.reminderEnabled)
+            .putInt(KEY_REMINDER_MINUTES, s.reminderMinutes)
+            .putBoolean(KEY_BUDGET_ALERT, s.budgetAlertEnabled)
             .apply()
     }
 
@@ -58,6 +67,9 @@ class SettingsStore(context: Context) {
         const val KEY_DEFAULT_PAYMENT = "default_payment"
         const val KEY_PAYDAY = "payday"
         const val KEY_PAYDAY_SHIFT = "payday_shift_weekend"
+        const val KEY_REMINDER = "reminder"
+        const val KEY_REMINDER_MINUTES = "reminder_minutes"
+        const val KEY_BUDGET_ALERT = "budget_alert"
 
         fun load(p: SharedPreferences) = AppSettings(
             theme = p.getString(KEY_THEME, null)?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
@@ -65,6 +77,9 @@ class SettingsStore(context: Context) {
             defaultPayment = PaymentMethod.fromName(p.getString(KEY_DEFAULT_PAYMENT, null)),
             payday = p.getInt(KEY_PAYDAY, 0).coerceIn(0, 31),
             paydayShiftWeekend = p.getBoolean(KEY_PAYDAY_SHIFT, true),
+            reminderEnabled = p.getBoolean(KEY_REMINDER, false),
+            reminderMinutes = p.getInt(KEY_REMINDER_MINUTES, 21 * 60).coerceIn(0, 24 * 60 - 1),
+            budgetAlertEnabled = p.getBoolean(KEY_BUDGET_ALERT, false),
         )
     }
 }

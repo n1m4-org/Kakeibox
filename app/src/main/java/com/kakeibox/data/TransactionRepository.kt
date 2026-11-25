@@ -27,6 +27,11 @@ class TransactionRepository(
     fun observeDailyExpense(startDay: LocalDate, endDay: LocalDate): Flow<List<DayCategoryTotal>> =
         dao.observeDailyExpense(startDay.toEpochDay(), endDay.toEpochDay())
 
+    suspend fun countOn(date: LocalDate): Int = dao.countOn(date.toEpochDay())
+
+    suspend fun dailyExpense(start: LocalDate, endInclusive: LocalDate): List<DayCategoryTotal> =
+        dao.dailyExpense(start.toEpochDay(), endInclusive.toEpochDay())
+
     suspend fun dailyExpense(period: Period): List<DayCategoryTotal> =
         dao.dailyExpense(period.startEpochDay, period.endEpochDay)
 
