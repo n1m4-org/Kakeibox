@@ -16,7 +16,10 @@ import com.kakeibox.data.PaymentMethod
 import com.kakeibox.data.Period
 import com.kakeibox.data.Recurring
 import com.kakeibox.data.RecurringRunner
+import com.kakeibox.data.SearchFilter
 import com.kakeibox.data.Template
+import com.kakeibox.data.search
+import kotlinx.coroutines.flow.flowOf
 import com.kakeibox.data.quickExpense
 import com.kakeibox.data.Transaction
 import com.kakeibox.data.TxType
@@ -71,6 +74,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 computeTodayStatuses(settings, spent, LocalDate.now(), p.start)
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** 検索条件と結果 */
+    private val _searchFilter = MutableStateFlow(SearchFilter())
+    val searchFilter: StateFlow<SearchFilter> = _searchFilter.asStateFlow()
+    val searchResults: StateFlow<List<Transaction>> = _searchFilter
+        .flatMapLatest { f -> if (f.isEmpty) flowOf(emptyList()) else repo.observeAll().map { it.search(f) } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun updateSearch(transform: (SearchFilter) -> SearchFilter) { _searchFilter.value = transform(_searchFilter.value) }
 
     /** クイック入力で保存した記録（取り消し用のSnackbar表示に使う） */
     private val _quickAdded = MutableSharedFlow<Transaction>(extraBufferCapacity = 1)

@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -65,6 +66,7 @@ fun HomeScreen(
     contentPadding: PaddingValues,
     onEdit: (Long) -> Unit,
     onOpenBudgets: () -> Unit,
+    onSearch: () -> Unit,
 ) {
     val period by vm.period.collectAsStateWithLifecycle()
     val currentPeriod by vm.currentPeriod.collectAsStateWithLifecycle()
@@ -83,7 +85,14 @@ fun HomeScreen(
             bottom = contentPadding.calculateBottomPadding() + 88.dp,
         ),
     ) {
-        item { MonthSelector(period, vm::prevMonth, vm::nextMonth, vm::thisMonth) }
+        item {
+            Box(Modifier.fillMaxWidth()) {
+                MonthSelector(period, vm::prevMonth, vm::nextMonth, vm::thisMonth)
+                IconButton(onClick = onSearch, modifier = Modifier.align(Alignment.CenterEnd)) {
+                    Icon(Icons.Outlined.Search, "検索")
+                }
+            }
+        }
         if (period == currentPeriod) {
             item { TodayCard(todayStatuses, period, onOpenBudgets) }
         }

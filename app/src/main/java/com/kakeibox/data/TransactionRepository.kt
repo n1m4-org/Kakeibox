@@ -26,6 +26,9 @@ class TransactionRepository(
     suspend fun dailyExpense(period: Period): List<DayCategoryTotal> =
         dao.dailyExpense(period.startEpochDay, period.endEpochDay)
 
+    fun observeAll(): Flow<List<Transaction>> = dao.observeAll()
+    suspend fun all(): List<Transaction> = dao.all()
+
     suspend fun findById(id: Long) = dao.findById(id)
 
     /** 保存して採番されたIDを返す */

@@ -52,6 +52,7 @@ import com.kakeibox.ui.screens.ReportScreen
 import com.kakeibox.ui.screens.SettingsNavigation
 import com.kakeibox.ui.screens.RecurringEditScreen
 import com.kakeibox.ui.screens.RecurringScreen
+import com.kakeibox.ui.screens.SearchScreen
 import com.kakeibox.ui.screens.SettingsScreen
 import com.kakeibox.ui.screens.TemplatesScreen
 import com.kakeibox.ui.theme.KakeiboxTheme
@@ -92,6 +93,7 @@ internal object Routes {
     const val SETTINGS = "settings"
     const val BUDGETS = "budgets"
     const val TEMPLATES = "templates"
+    const val SEARCH = "search"
     const val RECURRING = "recurring"
     const val RECURRING_EDIT = "recurring/edit?id={id}"
     fun recurringEdit(id: Long?) = if (id == null) "recurring/edit" else "recurring/edit?id=$id"
@@ -168,6 +170,7 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
                             vm, padding,
                             onEdit = { nav.navigate(Routes.edit(it)) },
                             onOpenBudgets = { nav.navigate(Routes.BUDGETS) },
+                            onSearch = { nav.navigate(Routes.SEARCH) },
                         )
                     }
                     composable(Routes.REPORT) { ReportScreen(vm, padding) }
@@ -213,6 +216,9 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
         ) { entry ->
             val id = entry.arguments?.getLong("id")?.takeIf { it >= 0 }
             EditScreen(vm, id, onDone = { nav.popBackStack() })
+        }
+        composable(Routes.SEARCH) {
+            SearchScreen(vm, onBack = { nav.popBackStack() }, onOpen = { nav.navigate(Routes.edit(it)) })
         }
         composable(Routes.TEMPLATES) {
             TemplatesScreen(vm, onBack = { nav.popBackStack() }, onCreate = { nav.navigate(Routes.edit()) })

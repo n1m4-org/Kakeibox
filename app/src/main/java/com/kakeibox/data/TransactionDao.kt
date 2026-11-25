@@ -31,6 +31,12 @@ interface TransactionDao {
     @Query(DAILY_EXPENSE)
     suspend fun dailyExpense(startDay: Long, endDay: Long): List<DayCategoryTotal>
 
+    @Query("SELECT * FROM transactions ORDER BY date DESC, id DESC")
+    fun observeAll(): Flow<List<Transaction>>
+
+    @Query("SELECT * FROM transactions ORDER BY date, id")
+    suspend fun all(): List<Transaction>
+
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun findById(id: Long): Transaction?
 
