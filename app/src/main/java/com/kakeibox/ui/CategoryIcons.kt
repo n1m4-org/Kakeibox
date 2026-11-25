@@ -11,12 +11,14 @@ import androidx.compose.material.icons.outlined.LocalBar
 import androidx.compose.material.icons.outlined.LocalHospital
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.ShoppingBasket
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Train
 import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.kakeibox.data.BudgetTarget
 import com.kakeibox.data.Category
 
 /** カテゴリごとの線画（Outlined）アイコン */
@@ -37,4 +39,19 @@ val Category.icon: ImageVector
         Category.BONUS -> Icons.Outlined.CardGiftcard
         Category.SIDE_JOB -> Icons.Outlined.WorkOutline
         Category.ALLOWANCE -> Icons.Outlined.AccountBalanceWallet
+    }
+
+/** 「全体」の表示色 */
+const val ALL_TARGET_COLOR = 0xFF00897B
+
+val BudgetTarget.icon: ImageVector
+    get() = when (this) {
+        BudgetTarget.All -> Icons.Outlined.Savings
+        is BudgetTarget.Of -> category.icon
+    }
+
+val BudgetTarget.color: Long
+    get() = when (this) {
+        BudgetTarget.All -> ALL_TARGET_COLOR
+        is BudgetTarget.Of -> category.color
     }

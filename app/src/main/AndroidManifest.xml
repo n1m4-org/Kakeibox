@@ -38,6 +38,15 @@
                 android:resource="@xml/kakeibox_widget_info" />
         </receiver>
 
+        <!-- 「今日の予算」ウィジェットの対象選択 -->
+        <activity
+            android:name=".widget.DailyBudgetWidgetConfigActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <receiver
             android:name=".widget.DailyBudgetWidgetReceiver"
             android:exported="true"

@@ -16,3 +16,13 @@ fun signedYen(v: Long): String = (if (v < 0) "-" else "") + yen(kotlin.math.abs(
 fun LocalDate.dayLabel(): String = format(dayFormat)
 fun LocalDate.fullLabel(): String = format(fullDateFormat)
 fun YearMonth.label(): String = format(monthFormat)
+
+/** 繰り越しなど増減を表す金額（+¥300 / -¥400 / ¥0） */
+fun plusMinusYen(v: Long): String = when {
+    v > 0 -> "+" + yen(v)
+    else -> signedYen(v)
+}
+
+/** 「1日 ¥2,000 × 30日 ＝ 今月 ¥60,000」 */
+fun monthlyBudgetLabel(daily: Long, month: YearMonth): String =
+    "1日 ${yen(daily)} × ${month.lengthOfMonth()}日 ＝ ${month.monthValue}月 ${yen(com.kakeibox.data.monthlyBudget(daily, month))}"

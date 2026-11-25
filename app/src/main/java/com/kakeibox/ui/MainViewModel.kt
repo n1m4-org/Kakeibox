@@ -6,8 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.kakeibox.AppGraph
 import com.kakeibox.data.Category
 import com.kakeibox.data.DailyBudgetSetting
-import com.kakeibox.data.DailyBudgetStatus
-import com.kakeibox.data.computeDailyBudget
+import com.kakeibox.data.BudgetTarget
+import com.kakeibox.data.TargetStatus
+import com.kakeibox.data.computeTodayStatuses
 import kotlinx.coroutines.flow.combine
 import com.kakeibox.data.MonthSummary
 import com.kakeibox.data.Transaction
@@ -44,13 +45,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MonthSummary.EMPTY)
 
     val budget: StateFlow<Long> = budgetStore.budget
-    val dailyBudget: StateFlow<DailyBudgetSetting> = budgetStore.daily
+    val dailyBudget: StateFlow<Map<BudgetTarget, DailyBudgetSetting>> = budgetStore.daily
 
-    /** 今日の予算の状況（1日予算が未設定なら null） */
-    val todayStatus: StateFlow<DailyBudgetStatus?> =
-        combine(repo.observeDailyExpense(YearMonth.now()), budgetStore.daily) { spent, setting ->
-            computeDailyBudget(setting.amount, LocalDate.ofEpochDay(setting.since), LocalDate.now(), spent)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    /** 設定済みの対象ごとの今日の予算の状況 */
+    val todayStatuses: StateFlow<List<TargetStatus>> =
+        combine(repo.observeDailyExpense(YearMonth.now()), budgetStore.daily) { spent, settings ->
+            computeTodayStatuses(settings, spent, LocalDate.now())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** クイック入力で保存した記録（取り消し用のSnackbar表示に使う） */
     private val _quickAdded = MutableSharedFlow<Transaction>(extraBufferCapacity = 1)
@@ -69,8 +70,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         refreshWidgets()
     }
 
-    fun setDailyBudget(value: Long) {
-        budgetStore.setDaily(value)
+    fun setDailyBudget(target: BudgetTarget, value: Long) {
+        budgetStore.setDaily(target, value)
         refreshWidgets()
     }
 

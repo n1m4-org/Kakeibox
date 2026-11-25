@@ -1,7 +1,6 @@
 package com.kakeibox.data
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import java.time.YearMonth
 
 /**
@@ -18,14 +17,15 @@ class TransactionRepository(
     suspend fun monthExpense(month: YearMonth): Long =
         dao.sumExpenseBetween(month.atDay(1).toEpochDay(), month.atEndOfMonth().toEpochDay())
 
-    /** 月内の日別支出（epochDay → 合計） */
-    fun observeDailyExpense(month: YearMonth): Flow<Map<Long, Long>> =
-        dao.observeDailyExpense(month.atDay(1).toEpochDay(), month.atEndOfMonth().toEpochDay())
-            .map { list -> list.associate { it.date to it.total } }
+    fun observeMonthExpense(month: YearMonth): Flow<Long> =
+        dao.observeSumExpenseBetween(month.atDay(1).toEpochDay(), month.atEndOfMonth().toEpochDay())
 
-    suspend fun dailyExpense(month: YearMonth): Map<Long, Long> =
+    /** 月内の日別・カテゴリ別支出 */
+    fun observeDailyExpense(month: YearMonth): Flow<List<DayCategoryTotal>> =
+        dao.observeDailyExpense(month.atDay(1).toEpochDay(), month.atEndOfMonth().toEpochDay())
+
+    suspend fun dailyExpense(month: YearMonth): List<DayCategoryTotal> =
         dao.dailyExpense(month.atDay(1).toEpochDay(), month.atEndOfMonth().toEpochDay())
-            .associate { it.date to it.total }
 
     suspend fun findById(id: Long) = dao.findById(id)
 

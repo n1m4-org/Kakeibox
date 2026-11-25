@@ -17,17 +17,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,34 +35,42 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kakeibox.data.DailyBudgetStatus
+import com.kakeibox.data.BudgetTarget
+import com.kakeibox.data.TargetStatus
 import com.kakeibox.data.MonthSummary
 import com.kakeibox.data.Transaction
 import com.kakeibox.data.TxType
 import com.kakeibox.ui.MainViewModel
+import com.kakeibox.ui.components.BudgetDialog
+import com.kakeibox.ui.components.BudgetProgress
 import com.kakeibox.ui.components.CategoryBadge
+import com.kakeibox.ui.components.TargetBadge
 import com.kakeibox.ui.components.MonthSelector
 import com.kakeibox.ui.dayLabel
+import com.kakeibox.ui.monthlyBudgetLabel
+import com.kakeibox.ui.plusMinusYen
 import com.kakeibox.ui.signedYen
 import com.kakeibox.ui.theme.ExpenseColor
 import com.kakeibox.ui.theme.IncomeColor
-import com.kakeibox.ui.theme.WarningColor
 import com.kakeibox.ui.yen
 import java.time.YearMonth
 
 @Composable
-fun HomeScreen(vm: MainViewModel, contentPadding: PaddingValues, onEdit: (Long) -> Unit) {
+fun HomeScreen(
+    vm: MainViewModel,
+    contentPadding: PaddingValues,
+    onEdit: (Long) -> Unit,
+    onOpenBudgets: () -> Unit,
+) {
     val month by vm.month.collectAsStateWithLifecycle()
     val list by vm.transactions.collectAsStateWithLifecycle()
     val summary by vm.summary.collectAsStateWithLifecycle()
     val budget by vm.budget.collectAsStateWithLifecycle()
-    val daily by vm.dailyBudget.collectAsStateWithLifecycle()
-    val today by vm.todayStatus.collectAsStateWithLifecycle()
-    var dialog by remember { mutableStateOf<BudgetKind?>(null) }
+    val todayStatuses by vm.todayStatuses.collectAsStateWithLifecycle()
+    var showMonthlyDialog by remember { mutableStateOf(false) }
 
     val grouped = remember(list) { list.groupBy { it.date } }
 
@@ -79,9 +83,9 @@ fun HomeScreen(vm: MainViewModel, contentPadding: PaddingValues, onEdit: (Long) 
     ) {
         item { MonthSelector(month, vm::prevMonth, vm::nextMonth, vm::thisMonth) }
         if (month == YearMonth.now()) {
-            item { TodayCard(today, onEditDaily = { dialog = BudgetKind.DAILY }) }
+            item { TodayCard(todayStatuses, month, onOpenBudgets) }
         }
-        item { SummaryCard(summary, budget, onEditBudget = { dialog = BudgetKind.MONTHLY }) }
+        item { SummaryCard(summary, budget, onEditBudget = { showMonthlyDialog = true }) }
 
         if (list.isEmpty()) {
             item {
@@ -111,79 +115,78 @@ fun HomeScreen(vm: MainViewModel, contentPadding: PaddingValues, onEdit: (Long) 
         }
     }
 
-    when (dialog) {
-        BudgetKind.MONTHLY -> BudgetDialog(
+    if (showMonthlyDialog) {
+        BudgetDialog(
             title = "月の予算",
             current = budget,
-            onDismiss = { dialog = null },
-            onSave = { vm.setBudget(it); dialog = null },
+            onDismiss = { showMonthlyDialog = false },
+            onSave = { vm.setBudget(it); showMonthlyDialog = false },
         )
-        BudgetKind.DAILY -> BudgetDialog(
-            title = "1日の予算",
-            description = "使わなかった分は翌日に繰り越され、使いすぎた分は翌日の予算から差し引かれます（月初にリセット）。金額を変更すると、繰り越しは今日から数え直します。",
-            current = daily.amount,
-            onDismiss = { dialog = null },
-            onSave = { vm.setDailyBudget(it); dialog = null },
-        )
-        null -> Unit
     }
 }
 
-private enum class BudgetKind { MONTHLY, DAILY }
-
+/** 今日の予算（設定済みの対象ごと） */
 @Composable
-private fun TodayCard(status: DailyBudgetStatus?, onEditDaily: () -> Unit) {
+internal fun TodayCard(statuses: List<TargetStatus>, month: YearMonth, onOpenBudgets: () -> Unit) {
     Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Column(Modifier.padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp)) {
-            if (status == null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("今日の予算", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-                    TextButton(onClick = onEditDaily) { Text("1日の予算を設定") }
-                }
+        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("今日の予算", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                TextButton(onClick = onOpenBudgets) { Text(if (statuses.isEmpty()) "1日の予算を設定" else "設定") }
+            }
+            if (statuses.isEmpty()) {
+                Text(
+                    "全体やカテゴリごとに1日の予算を設定すると、今日使える金額がここに表示されます",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 return@Column
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("今日の残り", style = MaterialTheme.typography.labelLarge)
-                    Text(
-                        if (status.remaining >= 0) yen(status.remaining) else "${yen(-status.remaining)} オーバー",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (status.remaining < 0) ExpenseColor else MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                IconButton(onClick = onEditDaily) { Icon(Icons.Outlined.Edit, "1日の予算を設定") }
+            statuses.forEachIndexed { i, ts ->
+                if (i > 0) HorizontalDivider(Modifier.padding(vertical = 10.dp))
+                TargetStatusRow(ts, month)
             }
-            Column(Modifier.padding(end = 12.dp)) {
-                Spacer(Modifier.height(4.dp))
-                BudgetProgress(status.ratio)
-                Spacer(Modifier.height(4.dp))
+            val categories = statuses.filter { it.target is BudgetTarget.Of }
+            if (categories.size >= 2) {
+                val dailySum = categories.sumOf { it.status.daily }
+                HorizontalDivider(Modifier.padding(vertical = 10.dp))
                 Text(
-                    "使用 ${yen(status.spentToday)} / 予算 ${yen(status.todayBudget)}",
+                    "カテゴリ合計　${monthlyBudgetLabel(dailySum, month)}",
                     style = MaterialTheme.typography.bodySmall,
-                )
-                Text(
-                    "1日 ${yen(status.daily)}　繰り越し ${signedYen(status.carryover).let { if (status.carryover > 0) "+$it" else it }}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (status.carryover < 0) ExpenseColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
                 )
             }
         }
     }
 }
 
-/** 予算の使用率バー（80%で黄、100%以上で赤） */
 @Composable
-private fun BudgetProgress(ratio: Float) {
-    LinearProgressIndicator(
-        progress = { ratio.coerceIn(0f, 1f) },
-        modifier = Modifier.fillMaxWidth().height(8.dp),
-        color = when {
-            ratio >= 1f -> ExpenseColor
-            ratio >= 0.8f -> WarningColor
-            else -> MaterialTheme.colorScheme.primary
-        },
-    )
+private fun TargetStatusRow(ts: TargetStatus, month: YearMonth) {
+    val status = ts.status
+    val over = status.remaining < 0
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            TargetBadge(ts.target, size = 32.dp)
+            Text(ts.target.label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            Text(
+                if (over) "${yen(-status.remaining)} オーバー" else "残り ${yen(status.remaining)}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (over) ExpenseColor else MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        BudgetProgress(status.ratio)
+        Text(
+            "使用 ${yen(status.spentToday)} / 今日の予算 ${signedYen(status.todayBudget)}（繰り越し ${plusMinusYen(status.carryover)}）",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (status.carryover < 0) ExpenseColor else MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            monthlyBudgetLabel(status.daily, month),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 @Composable
@@ -257,35 +260,4 @@ private fun TransactionRow(tx: Transaction, onClick: () -> Unit) {
             color = if (income) IncomeColor else ExpenseColor,
         )
     }
-}
-
-@Composable
-private fun BudgetDialog(
-    title: String,
-    current: Long,
-    onDismiss: () -> Unit,
-    onSave: (Long) -> Unit,
-    description: String? = null,
-) {
-    var text by remember { mutableStateOf(if (current > 0) current.toString() else "") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-          Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (description != null) {
-                Text(description, style = MaterialTheme.typography.bodySmall)
-            }
-            OutlinedTextField(
-                value = text,
-                onValueChange = { v -> text = v.filter(Char::isDigit).take(10) },
-                label = { Text("金額（円）・0で解除") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
-          }
-        },
-        confirmButton = { TextButton(onClick = { onSave(text.toLongOrNull() ?: 0L) }) { Text("保存") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("キャンセル") } },
-    )
 }

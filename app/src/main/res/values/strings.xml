@@ -3,5 +3,5 @@
     <string name="widget_name">支出クイック入力</string>
     <string name="widget_description">今月の支出を表示し、ワンタップで支出を追加できます</string>
     <string name="daily_widget_name">今日の予算</string>
-    <string name="daily_widget_description">1日の予算に対する今日の使用状況を表示します</string>
+    <string name="daily_widget_description">全体またはカテゴリごとに、1日の予算に対する今日の使用状況を表示します</string>
 </resources>

@@ -2,6 +2,9 @@ package com.kakeibox.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.Button
@@ -34,9 +37,13 @@ import java.time.YearMonth
 /** 今月の支出合計と「支出を追加」ボタンを表示するホーム画面ウィジェット */
 class KakeiboxWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val month = YearMonth.now()
-        val total = AppGraph.repository(context).monthExpense(month)
+        val repo = AppGraph.repository(context)
+        val initial = repo.monthExpense(YearMonth.now())
         provideContent {
+            // セッション中の更新（記録の追加・月替わり）にも追従するため、合計はFlowで購読する
+            val month = YearMonth.now()
+            val flow = remember(month) { repo.observeMonthExpense(month) }
+            val total by flow.collectAsState(initial)
             GlanceTheme { Content(month, total) }
         }
     }

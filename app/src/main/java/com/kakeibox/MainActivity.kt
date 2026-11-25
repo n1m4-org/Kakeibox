@@ -41,6 +41,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.quickadd.QuickAddContent
+import com.kakeibox.ui.screens.DailyBudgetScreen
 import com.kakeibox.ui.screens.EditScreen
 import com.kakeibox.ui.screens.HomeScreen
 import com.kakeibox.ui.screens.ReportScreen
@@ -52,35 +53,39 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        // ウィジェットのクイック入力から「詳細入力」を選んだ場合は入力画面から始める
-        val openEdit = savedInstanceState == null && intent.getBooleanExtra(EXTRA_OPEN_EDIT, false)
-        setContent { KakeiboxTheme { KakeiboxApp(openEditOnStart = openEdit) } }
+        // ウィジェットから特定の画面（入力・予算設定）を指定して起動された場合はその画面から始める
+        val startRoute = if (savedInstanceState == null) intent.getStringExtra(EXTRA_START_ROUTE) else null
+        setContent { KakeiboxTheme { KakeiboxApp(startRoute = startRoute) } }
     }
 
     companion object {
-        private const val EXTRA_OPEN_EDIT = "open_edit"
+        const val EXTRA_START_ROUTE = "start_route"
 
-        fun openEditIntent(context: Context): Intent =
+        private fun startIntent(context: Context, route: String): Intent =
             Intent(context, MainActivity::class.java)
-                .putExtra(EXTRA_OPEN_EDIT, true)
+                .putExtra(EXTRA_START_ROUTE, route)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+
+        fun openEditIntent(context: Context): Intent = startIntent(context, Routes.edit())
+        fun openBudgetsIntent(context: Context): Intent = startIntent(context, Routes.BUDGETS)
     }
 }
 
-private object Routes {
+internal object Routes {
     const val HOME = "home"
     const val REPORT = "report"
+    const val BUDGETS = "budgets"
     const val EDIT = "edit?id={id}"
     fun edit(id: Long? = null) = if (id == null) "edit" else "edit?id=$id"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun KakeiboxApp(openEditOnStart: Boolean = false, vm: MainViewModel = viewModel()) {
+fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
     val nav = rememberNavController()
 
     LaunchedEffect(Unit) {
-        if (openEditOnStart) nav.navigate(Routes.edit())
+        if (startRoute != null) nav.navigate(startRoute)
     }
 
     NavHost(nav, startDestination = "tabs") {
@@ -138,7 +143,12 @@ fun KakeiboxApp(openEditOnStart: Boolean = false, vm: MainViewModel = viewModel(
                 },
             ) { padding ->
                 NavHost(inner, startDestination = Routes.HOME) {
-                    composable(Routes.HOME) { HomeScreen(vm, padding, onEdit = { nav.navigate(Routes.edit(it)) }) }
+                    composable(Routes.HOME) { HomeScreen(
+                            vm, padding,
+                            onEdit = { nav.navigate(Routes.edit(it)) },
+                            onOpenBudgets = { nav.navigate(Routes.BUDGETS) },
+                        )
+                    }
                     composable(Routes.REPORT) { ReportScreen(vm, padding) }
                 }
             }
@@ -167,6 +177,9 @@ fun KakeiboxApp(openEditOnStart: Boolean = false, vm: MainViewModel = viewModel(
         ) { entry ->
             val id = entry.arguments?.getLong("id")?.takeIf { it >= 0 }
             EditScreen(vm, id, onDone = { nav.popBackStack() })
+        }
+        composable(Routes.BUDGETS) {
+            DailyBudgetScreen(vm, onBack = { nav.popBackStack() })
         }
     }
 }
