@@ -59,6 +59,12 @@ interface TemplateDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(t: Template): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<Template>)
+
+    @Query("DELETE FROM templates")
+    suspend fun deleteAll()
+
     @Delete
     suspend fun delete(t: Template)
 }

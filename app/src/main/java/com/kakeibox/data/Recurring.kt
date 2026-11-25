@@ -85,6 +85,12 @@ interface RecurringDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(r: Recurring): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<Recurring>)
+
+    @Query("DELETE FROM recurring")
+    suspend fun deleteAll()
+
     @Delete
     suspend fun delete(r: Recurring)
 }

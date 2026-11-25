@@ -48,4 +48,10 @@ interface TransactionDao {
 
     @Delete
     suspend fun delete(tx: Transaction)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(txs: List<Transaction>)
+
+    @Query("DELETE FROM transactions")
+    suspend fun deleteAll()
 }

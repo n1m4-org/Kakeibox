@@ -5,7 +5,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmarks
+import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.NotificationImportant
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Schedule
@@ -70,6 +74,7 @@ fun SettingsScreen(vm: MainViewModel, contentPadding: PaddingValues, navigation:
         settings, contentPadding, navigation,
         onUpdate = vm::updateSettings,
         notificationsAllowed = allowed,
+        dataActions = rememberDataActions(),
         withNotificationPermission = { action ->
             if (Notifications.canPost(context) || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                 action()
@@ -92,6 +97,7 @@ internal fun SettingsContent(
     notificationsAllowed: Boolean = true,
     /** 通知の許可を確認してから action を実行する */
     withNotificationPermission: (action: () -> Unit) -> Unit = { it() },
+    dataActions: DataActions = DataActions(),
 ) {
     var dialog by rememberSaveable { mutableStateOf<SettingsDialog?>(null) }
 
@@ -181,6 +187,12 @@ internal fun SettingsContent(
                 },
             )
         }
+
+        item { SettingsSection("データ") }
+        item { SettingsItem("CSVに書き出す", Icons.Outlined.FileDownload, "すべての明細（Excelで開けます）", onClick = dataActions.exportCsv) }
+        item { SettingsItem("CSVから取り込む", Icons.Outlined.FileUpload, "日付,種別,カテゴリ,金額,支払い方法,メモ の形式", onClick = dataActions.importCsv) }
+        item { SettingsItem("バックアップを保存", Icons.Outlined.Backup, "明細・テンプレート・定期の収支・予算・設定をファイルに保存", onClick = dataActions.backup) }
+        item { SettingsItem("バックアップから復元", Icons.Outlined.Restore, "機種変更のときなどに。現在のデータは置き換わります", onClick = dataActions.restore) }
 
         item { SettingsSection("表示") }
         item {

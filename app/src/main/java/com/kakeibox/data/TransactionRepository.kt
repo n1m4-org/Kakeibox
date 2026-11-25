@@ -46,6 +46,12 @@ class TransactionRepository(
     /** 保存して採番されたIDを返す */
     suspend fun save(tx: Transaction): Long = dao.upsert(tx).also { onChanged() }
 
+    /** まとめて追加（CSVの取り込み） */
+    suspend fun insertAll(txs: List<Transaction>) {
+        dao.insertAll(txs)
+        onChanged()
+    }
+
     suspend fun delete(tx: Transaction) {
         dao.delete(tx)
         onChanged()

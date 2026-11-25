@@ -41,6 +41,9 @@ class SettingsStore(context: Context) {
     /** 今日を含む期間 */
     fun currentPeriod(today: LocalDate = LocalDate.now()): Period = Period.of(today, _settings.value.periodStartDay)
 
+    /** 保存内容を読み直す（バックアップの復元後） */
+    fun reload() { _settings.value = load(prefs) }
+
     fun update(transform: (AppSettings) -> AppSettings) {
         val next = transform(_settings.value)
         if (next == _settings.value) return

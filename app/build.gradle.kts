@@ -60,4 +60,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)
+    // Android の org.json はユニットテストではスタブのため、実装を追加
+    testImplementation(libs.org.json)
 }

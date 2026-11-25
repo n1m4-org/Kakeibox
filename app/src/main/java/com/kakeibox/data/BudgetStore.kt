@@ -29,6 +29,13 @@ class BudgetStore(context: Context) {
     /** 設定済みの月予算（締め日で区切った1か月） */
     val monthly: StateFlow<Map<BudgetTarget, Long>> = _monthly.asStateFlow()
 
+    /** 保存内容を読み直す（バックアップの復元後） */
+    fun reload() {
+        _daily.value = loadDaily()
+        _weekly.value = loadPlain(BudgetKind.WEEKLY)
+        _monthly.value = loadPlain(BudgetKind.MONTHLY)
+    }
+
     fun set(kind: BudgetKind, target: BudgetTarget, value: Long) = when (kind) {
         BudgetKind.DAILY -> setDaily(target, value)
         BudgetKind.WEEKLY -> setPlain(kind, _weekly, target, value)
