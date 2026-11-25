@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.YearMonth
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -110,6 +111,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             repo.observeRange(periods.first().start, p.endInclusive).map { periodTotals(it, periods) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** カレンダー（カレンダーどおりの月） */
+    private val _calendarMonth = MutableStateFlow(YearMonth.now())
+    val calendarMonth: StateFlow<YearMonth> = _calendarMonth.asStateFlow()
+    val calendarTransactions: StateFlow<List<Transaction>> = _calendarMonth
+        .flatMapLatest { m -> repo.observeRange(m.atDay(1), m.atEndOfMonth()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun changeCalendarMonth(delta: Long) { _calendarMonth.value = _calendarMonth.value.plusMonths(delta) }
+    fun calendarToday() { _calendarMonth.value = YearMonth.now() }
 
     /** 年間レポート */
     private val _year = MutableStateFlow(LocalDate.now().year)

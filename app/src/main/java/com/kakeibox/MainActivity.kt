@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +47,7 @@ import com.kakeibox.data.RecurringRunner
 import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.quickadd.QuickAddContent
 import com.kakeibox.ui.screens.BudgetScreen
+import com.kakeibox.ui.screens.CalendarScreen
 import com.kakeibox.data.BudgetKind
 import com.kakeibox.ui.screens.EditScreen
 import com.kakeibox.ui.screens.HomeScreen
@@ -91,6 +93,7 @@ class MainActivity : ComponentActivity() {
 internal object Routes {
     const val HOME = "home"
     const val REPORT = "report"
+    const val CALENDAR = "calendar"
     const val SETTINGS = "settings"
     const val BUDGETS = "budgets?kind={kind}"
     fun budgets(kind: BudgetKind) = "budgets?kind=${kind.name}"
@@ -141,6 +144,7 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
                     NavigationBar {
                         listOf(
                             Triple(Routes.HOME, "明細", Icons.AutoMirrored.Outlined.ReceiptLong),
+                            Triple(Routes.CALENDAR, "カレンダー", Icons.Outlined.CalendarMonth),
                             Triple(Routes.REPORT, "レポート", Icons.Outlined.PieChart),
                             Triple(Routes.SETTINGS, "設定", Icons.Outlined.Settings),
                         ).forEach { (r, label, icon) ->
@@ -175,6 +179,7 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
                             onSearch = { nav.navigate(Routes.SEARCH) },
                         )
                     }
+                    composable(Routes.CALENDAR) { CalendarScreen(vm, padding, onOpen = { nav.navigate(Routes.edit(it)) }) }
                     composable(Routes.REPORT) { ReportScreen(vm, padding) }
                     composable(Routes.SETTINGS) {
                         SettingsScreen(vm, padding, SettingsNavigation(

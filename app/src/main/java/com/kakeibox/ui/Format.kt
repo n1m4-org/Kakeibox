@@ -28,3 +28,10 @@ fun monthlyBudgetLabel(daily: Long, period: Period): String =
 
 /** 今日を含む期間なら「今月」、それ以外は期間のラベル */
 fun Period.shortName(today: LocalDate = LocalDate.now()): String = if (today in this) "今月" else label
+
+/** カレンダーのマス用の短い金額（3,500 / 1.2万 / 125万） */
+fun compactYen(v: Long): String = when {
+    v < 10_000 -> java.text.NumberFormat.getNumberInstance(java.util.Locale.JAPAN).format(v)
+    v < 1_000_000 -> "%.1f万".format(v / 10_000.0).replace(".0万", "万")
+    else -> "${v / 10_000}万"
+}
