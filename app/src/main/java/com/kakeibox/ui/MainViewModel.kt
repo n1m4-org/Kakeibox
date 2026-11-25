@@ -12,7 +12,9 @@ import com.kakeibox.data.TargetStatus
 import com.kakeibox.data.computeTodayStatuses
 import kotlinx.coroutines.flow.combine
 import com.kakeibox.data.MonthSummary
+import com.kakeibox.data.PaymentMethod
 import com.kakeibox.data.Period
+import com.kakeibox.data.quickExpense
 import com.kakeibox.data.Transaction
 import com.kakeibox.data.TxType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -92,13 +94,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun refreshWidgets() = viewModelScope.launch { AppGraph.refreshWidgets(getApplication()) }
 
     /** 今日の支出として保存する */
-    fun quickAdd(amount: Long, category: Category) = viewModelScope.launch {
-        val tx = Transaction(
-            type = TxType.EXPENSE,
-            category = category.name,
-            amount = amount,
-            date = LocalDate.now().toEpochDay(),
-        )
+    fun quickAdd(amount: Long, category: Category, payment: PaymentMethod) = viewModelScope.launch {
+        addAndNotify(quickExpense(amount, category, payment))
+    }
+
+    /** 保存して、取り消し用のSnackbarに通知する */
+    private suspend fun addAndNotify(tx: Transaction) {
         val id = repo.save(tx)
         _quickAdded.emit(tx.copy(id = id))
     }

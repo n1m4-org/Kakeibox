@@ -18,6 +18,8 @@ data class AppSettings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
     /** 月の開始日（締め日の翌日）。1ならカレンダーどおり */
     val periodStartDay: Int = 1,
+    /** クイック入力などで使う既定の支払い方法 */
+    val defaultPayment: PaymentMethod = PaymentMethod.CASH,
 )
 
 /** 設定の保存（SharedPreferences）と購読 */
@@ -40,16 +42,19 @@ class SettingsStore(context: Context) {
         prefs.edit()
             .putString(KEY_THEME, s.theme.name)
             .putInt(KEY_PERIOD_START, s.periodStartDay)
+            .putString(KEY_DEFAULT_PAYMENT, s.defaultPayment.name)
             .apply()
     }
 
     private companion object {
         const val KEY_THEME = "theme"
         const val KEY_PERIOD_START = "period_start_day"
+        const val KEY_DEFAULT_PAYMENT = "default_payment"
 
         fun load(p: SharedPreferences) = AppSettings(
             theme = p.getString(KEY_THEME, null)?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
             periodStartDay = p.getInt(KEY_PERIOD_START, 1).coerceIn(1, Period.MAX_START_DAY),
+            defaultPayment = PaymentMethod.fromName(p.getString(KEY_DEFAULT_PAYMENT, null)),
         )
     }
 }

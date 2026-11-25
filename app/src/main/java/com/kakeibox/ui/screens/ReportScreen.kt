@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -34,6 +35,7 @@ import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.components.CategoryBadge
 import com.kakeibox.ui.components.DonutChart
 import com.kakeibox.ui.components.MonthSelector
+import com.kakeibox.ui.icon
 import com.kakeibox.ui.yen
 
 @Composable
@@ -72,6 +74,30 @@ fun ReportScreen(vm: MainViewModel, contentPadding: PaddingValues) {
                 Text(ct.category.label, Modifier.weight(1f))
                 Text("%.1f%%".format(ct.ratio * 100), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(yen(ct.total), style = MaterialTheme.typography.titleSmall)
+            }
+        }
+        if (type == TxType.EXPENSE && summary.expenseByPayment.isNotEmpty()) {
+            item {
+                Text(
+                    "支払い方法別",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 4.dp),
+                )
+            }
+            items(summary.expenseByPayment, key = { "pay_" + it.first.name }) { (method, sum) ->
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Icon(method.icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(method.label, Modifier.weight(1f))
+                    Text(
+                        "%.1f%%".format(if (summary.expense > 0) sum * 100f / summary.expense else 0f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(yen(sum), style = MaterialTheme.typography.titleSmall)
+                }
             }
         }
     }

@@ -15,12 +15,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -43,6 +48,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.kakeibox.data.Category
+import com.kakeibox.data.PaymentMethod
+import com.kakeibox.ui.icon
 import com.kakeibox.data.TxType
 import com.kakeibox.ui.components.CategoryBadge
 import com.kakeibox.ui.theme.ExpenseColor
@@ -56,11 +63,13 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun QuickAddContent(
-    onSave: (amount: Long, category: Category) -> Unit,
+    defaultPayment: PaymentMethod,
+    onSave: (amount: Long, category: Category, payment: PaymentMethod) -> Unit,
     onDetail: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var amount by rememberSaveable { mutableStateOf("") }
+    var payment by rememberSaveable(defaultPayment) { mutableStateOf(defaultPayment) }
     var error by remember { mutableStateOf(false) }
     val shake = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
@@ -73,6 +82,7 @@ fun QuickAddContent(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("今日の支出", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            PaymentSelector(payment, onChange = { payment = it })
             TextButton(onClick = onDetail) {
                 Text("詳細入力")
                 Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null)
@@ -108,7 +118,7 @@ fun QuickAddContent(
                                 shake.animateTo(0f, spring(dampingRatio = 0.2f, stiffness = 1200f))
                             }
                         } else {
-                            onSave(value, c)
+                            onSave(value, c, payment)
                             amount = ""
                         }
                     }
@@ -176,6 +186,28 @@ private fun Keypad(onKey: (AmountKey) -> Unit, onClear: () -> Unit) {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/** 支払い方法の選択（タップでメニュー） */
+@Composable
+fun PaymentSelector(payment: PaymentMethod, onChange: (PaymentMethod) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        AssistChip(
+            onClick = { expanded = true },
+            label = { Text(payment.label) },
+            leadingIcon = { Icon(payment.icon, null, Modifier.size(AssistChipDefaults.IconSize)) },
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            PaymentMethod.entries.forEach { p ->
+                DropdownMenuItem(
+                    text = { Text(p.label) },
+                    leadingIcon = { Icon(p.icon, null) },
+                    onClick = { onChange(p); expanded = false },
+                )
             }
         }
     }

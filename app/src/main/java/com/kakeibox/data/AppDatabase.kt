@@ -1,6 +1,7 @@
 package com.kakeibox.data
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -10,9 +11,18 @@ import androidx.room.TypeConverters
 class Converters {
     @TypeConverter fun fromType(t: TxType): String = t.name
     @TypeConverter fun toType(s: String): TxType = TxType.valueOf(s)
+    @TypeConverter fun fromPayment(p: PaymentMethod): String = p.name
+    @TypeConverter fun toPayment(s: String): PaymentMethod = PaymentMethod.fromName(s)
 }
 
-@Database(entities = [Transaction::class], version = 1, exportSchema = true)
+@Database(
+    entities = [Transaction::class],
+    version = 2,
+    exportSchema = true,
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2), // 支払い方法の列を追加
+    ],
+)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao

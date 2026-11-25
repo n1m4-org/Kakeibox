@@ -9,13 +9,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.lifecycle.lifecycleScope
-import com.kakeibox.data.Transaction
-import com.kakeibox.data.TxType
+import com.kakeibox.data.quickExpense
 import com.kakeibox.ui.quickadd.QuickAddContent
 import com.kakeibox.ui.theme.KakeiboxTheme
 import com.kakeibox.ui.yen
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 /** ホーム画面ウィジェットから開く、クイック入力シートだけの透明Activity */
 class QuickAddActivity : ComponentActivity() {
@@ -33,18 +31,12 @@ class QuickAddActivity : ComponentActivity() {
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
                 ) {
                     QuickAddContent(
-                        onSave = { amount, category ->
+                        defaultPayment = AppGraph.settingsStore(this@QuickAddActivity).settings.value.defaultPayment,
+                        onSave = { amount, category, payment ->
                             if (!saving) {
                                 saving = true
                                 lifecycleScope.launch {
-                                    repo.save(
-                                        Transaction(
-                                            type = TxType.EXPENSE,
-                                            category = category.name,
-                                            amount = amount,
-                                            date = LocalDate.now().toEpochDay(),
-                                        )
-                                    )
+                                    repo.save(quickExpense(amount, category, payment))
                                     Toast.makeText(
                                         applicationContext,
                                         "${category.label} ${yen(amount)} を記録しました",

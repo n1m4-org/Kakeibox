@@ -15,7 +15,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kakeibox.data.AppSettings
+import com.kakeibox.data.PaymentMethod
 import com.kakeibox.data.Period
+import com.kakeibox.ui.icon
 import com.kakeibox.data.ThemeMode
 import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.components.ChoiceDialog
@@ -33,7 +35,7 @@ fun SettingsScreen(vm: MainViewModel, contentPadding: PaddingValues, navigation:
     SettingsContent(settings, contentPadding, navigation, onUpdate = vm::updateSettings)
 }
 
-private enum class SettingsDialog { THEME, PERIOD_START }
+private enum class SettingsDialog { THEME, PERIOD_START, PAYMENT }
 
 @Composable
 internal fun SettingsContent(
@@ -48,6 +50,13 @@ internal fun SettingsContent(
         item { SettingsSection("予算") }
         item {
             SettingsItem("予算の設定", Icons.Outlined.Savings, "全体・カテゴリごとの1日の予算", onClick = navigation.openBudgets)
+        }
+
+        item { SettingsSection("入力") }
+        item {
+            SettingsItem("既定の支払い方法", settings.defaultPayment.icon, "クイック入力・新規入力で最初に選ばれる方法：${settings.defaultPayment.label}") {
+                dialog = SettingsDialog.PAYMENT
+            }
         }
 
         item { SettingsSection("期間") }
@@ -81,6 +90,14 @@ internal fun SettingsContent(
             label = ::periodStartLabel,
             onDismiss = { dialog = null },
             onSelect = { day -> onUpdate { it.copy(periodStartDay = day) }; dialog = null },
+        )
+        SettingsDialog.PAYMENT -> ChoiceDialog(
+            title = "既定の支払い方法",
+            options = PaymentMethod.entries,
+            selected = settings.defaultPayment,
+            label = { it.label },
+            onDismiss = { dialog = null },
+            onSelect = { p -> onUpdate { it.copy(defaultPayment = p) }; dialog = null },
         )
         null -> Unit
     }

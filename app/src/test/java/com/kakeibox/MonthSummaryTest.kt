@@ -2,6 +2,7 @@ package com.kakeibox
 
 import com.kakeibox.data.Category
 import com.kakeibox.data.MonthSummary
+import com.kakeibox.data.PaymentMethod
 import com.kakeibox.data.Transaction
 import com.kakeibox.data.TxType
 import org.junit.Assert.assertEquals
@@ -33,6 +34,17 @@ class MonthSummaryTest {
         assertEquals(listOf(Category.HOUSING, Category.FOOD), s.expenseByCategory.map { it.category })
         assertEquals(0.6f, s.expenseByCategory[0].ratio, 1e-6f)
         assertEquals(0.4f, s.expenseByCategory[1].ratio, 1e-6f)
+    }
+
+    @Test
+    fun expenseByPaymentSortedDescending() {
+        val s = MonthSummary.from(listOf(
+            tx(TxType.EXPENSE, Category.FOOD, 1_000).copy(payment = PaymentMethod.CASH),
+            tx(TxType.EXPENSE, Category.FOOD, 3_000).copy(payment = PaymentMethod.CREDIT),
+            tx(TxType.EXPENSE, Category.DAILY, 500).copy(payment = PaymentMethod.CASH),
+            tx(TxType.INCOME, Category.SALARY, 9_000).copy(payment = PaymentMethod.BANK),
+        ))
+        assertEquals(listOf(PaymentMethod.CREDIT to 3_000L, PaymentMethod.CASH to 1_500L), s.expenseByPayment)
     }
 
     @Test

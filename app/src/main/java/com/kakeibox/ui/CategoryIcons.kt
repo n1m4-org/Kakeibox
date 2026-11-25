@@ -1,7 +1,12 @@
 package com.kakeibox.ui
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.Contactless
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Checkroom
@@ -20,6 +25,7 @@ import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.kakeibox.data.BudgetTarget
 import com.kakeibox.data.Category
+import com.kakeibox.data.PaymentMethod
 
 /** カテゴリごとの線画（Outlined）アイコン */
 val Category.icon: ImageVector
@@ -54,4 +60,14 @@ val BudgetTarget.color: Long
     get() = when (this) {
         BudgetTarget.All -> ALL_TARGET_COLOR
         is BudgetTarget.Of -> category.color
+    }
+
+val PaymentMethod.icon: ImageVector
+    get() = when (this) {
+        PaymentMethod.CASH -> Icons.Outlined.Payments
+        PaymentMethod.CREDIT -> Icons.Outlined.CreditCard
+        PaymentMethod.EMONEY -> Icons.Outlined.Contactless
+        PaymentMethod.QR -> Icons.Outlined.QrCode2
+        PaymentMethod.BANK -> Icons.Outlined.AccountBalance
+        PaymentMethod.OTHER -> Icons.Outlined.MoreHoriz
     }

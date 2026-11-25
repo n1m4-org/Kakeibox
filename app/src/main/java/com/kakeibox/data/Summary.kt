@@ -9,6 +9,8 @@ data class MonthSummary(
     val expense: Long,
     val expenseByCategory: List<CategoryTotal>,
     val incomeByCategory: List<CategoryTotal>,
+    /** 支出の支払い方法別合計（多い順） */
+    val expenseByPayment: List<Pair<PaymentMethod, Long>> = emptyList(),
 ) {
     val balance: Long get() = income - expense
 
@@ -23,6 +25,10 @@ data class MonthSummary(
                 expense = expense,
                 expenseByCategory = byCategory(list, TxType.EXPENSE, expense),
                 incomeByCategory = byCategory(list, TxType.INCOME, income),
+                expenseByPayment = list.filter { it.type == TxType.EXPENSE }
+                    .groupBy { it.payment }
+                    .map { (p, txs) -> p to txs.sumOf { it.amount } }
+                    .sortedByDescending { it.second },
             )
         }
 

@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kakeibox.data.Category
+import com.kakeibox.data.PaymentMethod
 import com.kakeibox.data.Transaction
 import com.kakeibox.data.TxType
 import com.kakeibox.ui.MainViewModel
@@ -65,6 +66,7 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
     var amountText by rememberSaveable { mutableStateOf("") }
     var epochDay by rememberSaveable { mutableStateOf(LocalDate.now().toEpochDay()) }
     var memo by rememberSaveable { mutableStateOf("") }
+    var payment by rememberSaveable { mutableStateOf(vm.settings.value.defaultPayment) }
     var original by rememberSaveable { mutableStateOf<Long?>(null) }
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -78,6 +80,7 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
                 amountText = tx.amount.toString()
                 epochDay = tx.date
                 memo = tx.memo
+                payment = tx.payment
                 original = tx.id
             }
             loaded = true
@@ -91,6 +94,7 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
         amount = amountText.toLongOrNull() ?: 0,
         date = epochDay,
         memo = memo.trim(),
+        payment = payment,
     )
 
     Scaffold(
@@ -147,6 +151,18 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
                         leadingIcon = {
                             Icon(c.icon, null, tint = Color(c.color), modifier = Modifier.size(FilterChipDefaults.IconSize))
                         },
+                    )
+                }
+            }
+
+            Text(if (type == TxType.EXPENSE) "支払い方法" else "受け取り方法", style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PaymentMethod.entries.forEach { p ->
+                    FilterChip(
+                        selected = p == payment,
+                        onClick = { payment = p },
+                        label = { Text(p.label) },
+                        leadingIcon = { Icon(p.icon, null, modifier = Modifier.size(FilterChipDefaults.IconSize)) },
                     )
                 }
             }

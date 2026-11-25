@@ -49,6 +49,7 @@ import com.kakeibox.ui.components.BudgetDialog
 import com.kakeibox.ui.components.BudgetProgress
 import com.kakeibox.ui.components.CategoryBadge
 import com.kakeibox.ui.components.TargetBadge
+import com.kakeibox.ui.components.TransactionRow
 import com.kakeibox.ui.components.MonthSelector
 import com.kakeibox.ui.dayLabel
 import com.kakeibox.ui.monthlyBudgetLabel
@@ -237,28 +238,3 @@ private fun LabeledAmount(label: String, amount: Long, color: Color, modifier: M
     }
 }
 
-@Composable
-private fun TransactionRow(tx: Transaction, onClick: () -> Unit) {
-    val cat = tx.categoryEnum
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        CategoryBadge(cat)
-        Column(Modifier.weight(1f)) {
-            Text(cat.label, style = MaterialTheme.typography.bodyLarge)
-            if (tx.memo.isNotBlank()) {
-                Text(tx.memo, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        Spacer(Modifier.width(4.dp))
-        val income = tx.type == TxType.INCOME
-        Text(
-            (if (income) "+" else "-") + yen(tx.amount),
-            style = MaterialTheme.typography.titleMedium,
-            color = if (income) IncomeColor else ExpenseColor,
-        )
-    }
-}

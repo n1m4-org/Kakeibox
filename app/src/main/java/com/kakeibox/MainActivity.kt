@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -171,9 +172,11 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
                     }
                 }
                 ModalBottomSheet(onDismissRequest = { showQuickAdd = false }, sheetState = sheetState) {
+                    val appSettings by vm.settings.collectAsStateWithLifecycle()
                     QuickAddContent(
-                        onSave = { amount, category ->
-                            vm.quickAdd(amount, category)
+                        defaultPayment = appSettings.defaultPayment,
+                        onSave = { amount, category, payment ->
+                            vm.quickAdd(amount, category, payment)
                             close()
                         },
                         onDetail = { close { nav.navigate(Routes.edit()) } },
