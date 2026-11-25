@@ -153,12 +153,13 @@ internal fun PaydayCard(status: PaydayStatus) {
                 if (status.daysLeft == 0) {
                     Text("今日は給料日です", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 } else {
+                    Text("${status.payday.dayLabel()}の給料日まで", style = MaterialTheme.typography.labelMedium)
                     Text(
-                        "給料日まであと${status.daysLeft}日",
-                        style = MaterialTheme.typography.titleMedium,
+                        "あと${status.daysLeft}日",
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
+                        maxLines = 1,
                     )
-                    Text(status.payday.dayLabel(), style = MaterialTheme.typography.bodySmall)
                 }
             }
             val perDay = status.perDay
