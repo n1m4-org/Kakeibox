@@ -45,3 +45,19 @@ class PlainBudgetTest {
         assertEquals(d(23), Week.of(d(29)).start)
     }
 }
+
+class CategoryRankingTest {
+    @org.junit.Test
+    fun topNSortedDescending() {
+        val spent = listOf(
+            com.kakeibox.data.DayCategoryTotal(1, Category.FOOD.name, 3_000),
+            com.kakeibox.data.DayCategoryTotal(2, Category.FOOD.name, 2_000),
+            com.kakeibox.data.DayCategoryTotal(1, Category.HOBBY.name, 4_000),
+            com.kakeibox.data.DayCategoryTotal(1, Category.DAILY.name, 100),
+        )
+        org.junit.Assert.assertEquals(
+            listOf(Category.FOOD to 5_000L, Category.HOBBY to 4_000L),
+            com.kakeibox.data.categoryRanking(spent, 2),
+        )
+    }
+}

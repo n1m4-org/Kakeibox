@@ -9,6 +9,7 @@ import com.kakeibox.data.SettingsStore
 import com.kakeibox.notify.BudgetAlerts
 import com.kakeibox.data.TemplateDao
 import com.kakeibox.data.TransactionRepository
+import com.kakeibox.widget.BreakdownWidget
 import com.kakeibox.widget.DailyBudgetWidget
 import com.kakeibox.widget.KakeiboxWidget
 
@@ -51,5 +52,6 @@ object AppGraph {
         val app = context.applicationContext
         KakeiboxWidget().updateAll(app)
         DailyBudgetWidget().updateAll(app)
+        BreakdownWidget().updateAll(app)
     }
 }
