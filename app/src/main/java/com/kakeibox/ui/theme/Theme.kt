@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 
 val IncomeColor = Color(0xFF2E7D32)
 val ExpenseColor = Color(0xFFC62828)
+val WarningColor = Color(0xFFF9A825)
 
 private val Light = lightColorScheme(primary = Color(0xFF00897B), secondary = Color(0xFF5D8A85))
 private val Dark = darkColorScheme(primary = Color(0xFF4DB6AC), secondary = Color(0xFF9CCBC5))

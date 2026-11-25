@@ -4,8 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.kakeibox.AppGraph
-import com.kakeibox.data.BudgetStore
 import com.kakeibox.data.Category
+import com.kakeibox.data.DailyBudgetSetting
+import com.kakeibox.data.DailyBudgetStatus
+import com.kakeibox.data.computeDailyBudget
+import kotlinx.coroutines.flow.combine
 import com.kakeibox.data.MonthSummary
 import com.kakeibox.data.Transaction
 import com.kakeibox.data.TxType
@@ -27,7 +30,7 @@ import java.time.YearMonth
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = AppGraph.repository(app)
-    private val budgetStore = BudgetStore(app)
+    private val budgetStore = AppGraph.budgetStore(app)
 
     private val _month = MutableStateFlow(YearMonth.now())
     val month: StateFlow<YearMonth> = _month.asStateFlow()
@@ -41,6 +44,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MonthSummary.EMPTY)
 
     val budget: StateFlow<Long> = budgetStore.budget
+    val dailyBudget: StateFlow<DailyBudgetSetting> = budgetStore.daily
+
+    /** 今日の予算の状況（1日予算が未設定なら null） */
+    val todayStatus: StateFlow<DailyBudgetStatus?> =
+        combine(repo.observeDailyExpense(YearMonth.now()), budgetStore.daily) { spent, setting ->
+            computeDailyBudget(setting.amount, LocalDate.ofEpochDay(setting.since), LocalDate.now(), spent)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** クイック入力で保存した記録（取り消し用のSnackbar表示に使う） */
     private val _quickAdded = MutableSharedFlow<Transaction>(extraBufferCapacity = 1)
@@ -54,7 +64,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun save(tx: Transaction) = viewModelScope.launch { repo.save(tx) }
     fun delete(tx: Transaction) = viewModelScope.launch { repo.delete(tx) }
-    fun setBudget(value: Long) = budgetStore.set(value)
+    fun setBudget(value: Long) {
+        budgetStore.set(value)
+        refreshWidgets()
+    }
+
+    fun setDailyBudget(value: Long) {
+        budgetStore.setDaily(value)
+        refreshWidgets()
+    }
+
+    private fun refreshWidgets() = viewModelScope.launch { AppGraph.refreshWidgets(getApplication()) }
 
     /** 今日の支出として保存する */
     fun quickAdd(amount: Long, category: Category) = viewModelScope.launch {
