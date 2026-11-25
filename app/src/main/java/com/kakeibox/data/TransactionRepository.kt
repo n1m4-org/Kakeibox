@@ -1,6 +1,7 @@
 package com.kakeibox.data
 
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 /**
  * 収支データへの窓口。
@@ -22,6 +23,9 @@ class TransactionRepository(
     /** 期間内の日別・カテゴリ別支出 */
     fun observeDailyExpense(period: Period): Flow<List<DayCategoryTotal>> =
         dao.observeDailyExpense(period.startEpochDay, period.endEpochDay)
+
+    fun observeDailyExpense(startDay: LocalDate, endDay: LocalDate): Flow<List<DayCategoryTotal>> =
+        dao.observeDailyExpense(startDay.toEpochDay(), endDay.toEpochDay())
 
     suspend fun dailyExpense(period: Period): List<DayCategoryTotal> =
         dao.dailyExpense(period.startEpochDay, period.endEpochDay)

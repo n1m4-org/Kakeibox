@@ -45,7 +45,8 @@ import androidx.lifecycle.lifecycleScope
 import com.kakeibox.data.RecurringRunner
 import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.quickadd.QuickAddContent
-import com.kakeibox.ui.screens.DailyBudgetScreen
+import com.kakeibox.ui.screens.BudgetScreen
+import com.kakeibox.data.BudgetKind
 import com.kakeibox.ui.screens.EditScreen
 import com.kakeibox.ui.screens.HomeScreen
 import com.kakeibox.ui.screens.ReportScreen
@@ -83,7 +84,7 @@ class MainActivity : ComponentActivity() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
 
         fun openEditIntent(context: Context): Intent = startIntent(context, Routes.edit())
-        fun openBudgetsIntent(context: Context): Intent = startIntent(context, Routes.BUDGETS)
+        fun openBudgetsIntent(context: Context): Intent = startIntent(context, Routes.budgets(BudgetKind.DAILY))
     }
 }
 
@@ -91,7 +92,8 @@ internal object Routes {
     const val HOME = "home"
     const val REPORT = "report"
     const val SETTINGS = "settings"
-    const val BUDGETS = "budgets"
+    const val BUDGETS = "budgets?kind={kind}"
+    fun budgets(kind: BudgetKind) = "budgets?kind=${kind.name}"
     const val TEMPLATES = "templates"
     const val SEARCH = "search"
     const val RECURRING = "recurring"
@@ -169,14 +171,14 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
                     composable(Routes.HOME) { HomeScreen(
                             vm, padding,
                             onEdit = { nav.navigate(Routes.edit(it)) },
-                            onOpenBudgets = { nav.navigate(Routes.BUDGETS) },
+                            onOpenBudgets = { nav.navigate(Routes.budgets(it)) },
                             onSearch = { nav.navigate(Routes.SEARCH) },
                         )
                     }
                     composable(Routes.REPORT) { ReportScreen(vm, padding) }
                     composable(Routes.SETTINGS) {
                         SettingsScreen(vm, padding, SettingsNavigation(
-                            openBudgets = { nav.navigate(Routes.BUDGETS) },
+                            openBudgets = { nav.navigate(Routes.budgets(BudgetKind.DAILY)) },
                             openTemplates = { nav.navigate(Routes.TEMPLATES) },
                             openRecurring = { nav.navigate(Routes.RECURRING) },
                         ))
@@ -233,8 +235,12 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
             val id = entry.arguments?.getLong("id")?.takeIf { it >= 0 }
             RecurringEditScreen(vm, id, onDone = { nav.popBackStack() })
         }
-        composable(Routes.BUDGETS) {
-            DailyBudgetScreen(vm, onBack = { nav.popBackStack() })
+        composable(
+            Routes.BUDGETS,
+            arguments = listOf(navArgument("kind") { type = NavType.StringType; defaultValue = BudgetKind.DAILY.name }),
+        ) { entry ->
+            val kind = BudgetKind.valueOf(entry.arguments?.getString("kind") ?: BudgetKind.DAILY.name)
+            BudgetScreen(vm, kind, onBack = { nav.popBackStack() })
         }
     }
 }

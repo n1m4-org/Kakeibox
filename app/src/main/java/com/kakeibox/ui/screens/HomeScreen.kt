@@ -39,7 +39,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kakeibox.data.BudgetKind
 import com.kakeibox.data.BudgetTarget
+import com.kakeibox.data.PlainBudgetStatus
 import com.kakeibox.data.TargetStatus
 import com.kakeibox.data.MonthSummary
 import com.kakeibox.data.Period
@@ -65,16 +67,16 @@ fun HomeScreen(
     vm: MainViewModel,
     contentPadding: PaddingValues,
     onEdit: (Long) -> Unit,
-    onOpenBudgets: () -> Unit,
+    onOpenBudgets: (BudgetKind) -> Unit,
     onSearch: () -> Unit,
 ) {
     val period by vm.period.collectAsStateWithLifecycle()
     val currentPeriod by vm.currentPeriod.collectAsStateWithLifecycle()
     val list by vm.transactions.collectAsStateWithLifecycle()
     val summary by vm.summary.collectAsStateWithLifecycle()
-    val budget by vm.budget.collectAsStateWithLifecycle()
     val todayStatuses by vm.todayStatuses.collectAsStateWithLifecycle()
-    var showMonthlyDialog by remember { mutableStateOf(false) }
+    val weeklyStatuses by vm.weeklyStatuses.collectAsStateWithLifecycle()
+    val monthlyStatuses by vm.monthlyStatuses.collectAsStateWithLifecycle()
 
     val grouped = remember(list) { list.groupBy { it.date } }
 
@@ -94,9 +96,15 @@ fun HomeScreen(
             }
         }
         if (period == currentPeriod) {
-            item { TodayCard(todayStatuses, period, onOpenBudgets) }
+            item { TodayCard(todayStatuses, period) { onOpenBudgets(BudgetKind.DAILY) } }
+            if (weeklyStatuses.isNotEmpty()) {
+                item { PlainBudgetsCard("今週の予算（月〜日）", weeklyStatuses) { onOpenBudgets(BudgetKind.WEEKLY) } }
+            }
         }
-        item { SummaryCard(summary, budget, onEditBudget = { showMonthlyDialog = true }) }
+        if (monthlyStatuses.isNotEmpty()) {
+            item { PlainBudgetsCard(if (period == currentPeriod) "今月の予算" else "この月の予算", monthlyStatuses) { onOpenBudgets(BudgetKind.MONTHLY) } }
+        }
+        item { SummaryCard(summary) }
 
         if (list.isEmpty()) {
             item {
@@ -125,14 +133,40 @@ fun HomeScreen(
             }
         }
     }
+}
 
-    if (showMonthlyDialog) {
-        BudgetDialog(
-            title = "月の予算",
-            current = budget,
-            onDismiss = { showMonthlyDialog = false },
-            onSave = { vm.setBudget(it); showMonthlyDialog = false },
-        )
+/** 週・月の予算（設定済みの対象ごと） */
+@Composable
+internal fun PlainBudgetsCard(title: String, statuses: List<PlainBudgetStatus>, onOpenBudgets: () -> Unit) {
+    Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(title, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                TextButton(onClick = onOpenBudgets) { Text("設定") }
+            }
+            statuses.forEachIndexed { i, st ->
+                if (i > 0) Spacer(Modifier.height(10.dp))
+                val over = st.remaining < 0
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        TargetBadge(st.target, size = 28.dp)
+                        Text(st.target.label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                        Text(
+                            if (over) "${yen(-st.remaining)} オーバー" else "残り ${yen(st.remaining)}",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (over) ExpenseColor else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    BudgetProgress(st.ratio)
+                    Text(
+                        "使用 ${yen(st.spent)} / 予算 ${yen(st.budget)}（${(st.ratio * 100).toInt()}%）",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -201,7 +235,7 @@ private fun TargetStatusRow(ts: TargetStatus, period: Period) {
 }
 
 @Composable
-private fun SummaryCard(summary: MonthSummary, budget: Long, onEditBudget: () -> Unit) {
+private fun SummaryCard(summary: MonthSummary) {
     Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Column(Modifier.padding(16.dp)) {
             Text("収支", style = MaterialTheme.typography.labelLarge)
@@ -215,25 +249,6 @@ private fun SummaryCard(summary: MonthSummary, budget: Long, onEditBudget: () ->
             Row {
                 LabeledAmount("収入", summary.income, IncomeColor, Modifier.weight(1f))
                 LabeledAmount("支出", summary.expense, ExpenseColor, Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider()
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("月の予算", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-                Text(if (budget > 0) yen(budget) else "未設定", style = MaterialTheme.typography.bodyMedium)
-                IconButton(onClick = onEditBudget) { Icon(Icons.Outlined.Edit,"予算を設定") }
-            }
-            if (budget > 0) {
-                val ratio = summary.expense.toFloat() / budget
-                val remaining = budget - summary.expense
-                BudgetProgress(ratio)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    if (remaining >= 0) "残り ${yen(remaining)}（${(ratio * 100).toInt()}% 使用）"
-                    else "予算オーバー ${yen(-remaining)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (remaining < 0) ExpenseColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }

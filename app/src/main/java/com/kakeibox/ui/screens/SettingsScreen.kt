@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.runtime.Composable
@@ -52,12 +53,12 @@ internal fun SettingsContent(
     LazyColumn(Modifier.fillMaxSize(), contentPadding = contentPadding) {
         item { SettingsSection("予算") }
         item {
-            SettingsItem("予算の設定", Icons.Outlined.Savings, "全体・カテゴリごとの1日の予算", onClick = navigation.openBudgets)
+            SettingsItem("予算の設定", Icons.Outlined.Savings, "全体・カテゴリごとの1日／1週間／1か月の予算", onClick = navigation.openBudgets)
         }
 
         item { SettingsSection("入力") }
         item {
-            SettingsItem("既定の支払い方法", settings.defaultPayment.icon, "クイック入力・新規入力で最初に選ばれる方法：${settings.defaultPayment.label}") {
+            SettingsItem("既定の支払い方法", settings.defaultPayment.icon, settings.defaultPayment.label) {
                 dialog = SettingsDialog.PAYMENT
             }
         }
@@ -72,7 +73,7 @@ internal fun SettingsContent(
         item {
             SettingsItem(
                 "月の開始日（締め日）",
-                Icons.Outlined.EventRepeat,
+                Icons.Outlined.DateRange,
                 periodStartLabel(settings.periodStartDay),
             ) { dialog = SettingsDialog.PERIOD_START }
         }

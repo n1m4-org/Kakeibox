@@ -16,77 +16,120 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kakeibox.data.BudgetKind
 import com.kakeibox.data.BudgetTarget
-import com.kakeibox.data.DailyBudgetSetting
 import com.kakeibox.data.Period
 import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.components.BudgetDialog
 import com.kakeibox.ui.components.TargetBadge
 import com.kakeibox.ui.monthlyBudgetLabel
+import com.kakeibox.ui.yen
 
 const val CARRYOVER_RULE =
     "使わなかった分は翌日に繰り越され、使いすぎた分は翌日の予算から差し引かれます（新しい月の開始日にリセット）。" +
         "金額を変更すると、繰り越しは今日から数え直します。"
 
-/** 全体・カテゴリごとの1日予算の設定画面 */
+private fun kindDescription(kind: BudgetKind) = when (kind) {
+    BudgetKind.DAILY -> CARRYOVER_RULE
+    BudgetKind.WEEKLY -> "月曜〜日曜の1週間で使える金額です。"
+    BudgetKind.MONTHLY -> "設定した月の開始日から1か月で使える金額です。"
+}
+
+/** 全体・カテゴリごとの予算（1日／1週間／1か月）の設定画面 */
 @Composable
-fun DailyBudgetScreen(vm: MainViewModel, onBack: () -> Unit) {
-    val settings by vm.dailyBudget.collectAsStateWithLifecycle()
+fun BudgetScreen(vm: MainViewModel, initialKind: BudgetKind, onBack: () -> Unit) {
+    val daily by vm.dailyBudget.collectAsStateWithLifecycle()
+    val weekly by vm.weeklyBudget.collectAsStateWithLifecycle()
+    val monthly by vm.monthlyBudget.collectAsStateWithLifecycle()
     val period by vm.currentPeriod.collectAsStateWithLifecycle()
-    DailyBudgetContent(settings, period, onBack, onSave = vm::setDailyBudget)
+    BudgetContent(
+        amounts = mapOf(
+            BudgetKind.DAILY to daily.mapValues { it.value.amount },
+            BudgetKind.WEEKLY to weekly,
+            BudgetKind.MONTHLY to monthly,
+        ),
+        period = period,
+        initialKind = initialKind,
+        onBack = onBack,
+        onSave = vm::setBudget,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun DailyBudgetContent(
-    settings: Map<BudgetTarget, DailyBudgetSetting>,
+internal fun BudgetContent(
+    amounts: Map<BudgetKind, Map<BudgetTarget, Long>>,
     period: Period,
+    initialKind: BudgetKind,
     onBack: () -> Unit,
-    onSave: (BudgetTarget, Long) -> Unit,
+    onSave: (BudgetKind, BudgetTarget, Long) -> Unit,
 ) {
+    var kind by rememberSaveable { mutableStateOf(initialKind) }
     var editing by remember { mutableStateOf<BudgetTarget?>(null) }
+    val current = amounts[kind].orEmpty()
     val categoryTargets = BudgetTarget.entries.filterIsInstance<BudgetTarget.Of>()
+
+    fun summary(amount: Long): String = when (kind) {
+        BudgetKind.DAILY -> monthlyBudgetLabel(amount, period)
+        BudgetKind.WEEKLY -> "1週間 ${yen(amount)}"
+        BudgetKind.MONTHLY -> "1か月 ${yen(amount)}（1日あたり ${yen(amount / period.days)}）"
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("1日の予算") },
+                title = { Text("予算の設定") },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") } },
             )
         },
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
             item {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    BudgetKind.entries.forEachIndexed { i, k ->
+                        SegmentedButton(
+                            selected = kind == k,
+                            onClick = { kind = k },
+                            shape = SegmentedButtonDefaults.itemShape(i, BudgetKind.entries.size),
+                        ) { Text(k.label) }
+                    }
+                }
+            }
+            item {
                 Text(
-                    CARRYOVER_RULE,
+                    kindDescription(kind),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
             item { SectionHeader("全体（すべての支出）") }
-            item { TargetRow(BudgetTarget.All, settings[BudgetTarget.All], period) { editing = BudgetTarget.All } }
+            item { TargetRow(BudgetTarget.All, current[BudgetTarget.All]?.let(::summary)) { editing = BudgetTarget.All } }
             item { SectionHeader("カテゴリ別") }
             items(categoryTargets, key = { it.key }) { t ->
-                TargetRow(t, settings[t], period) { editing = t }
+                TargetRow(t, current[t]?.let(::summary)) { editing = t }
             }
-            val dailySum = categoryTargets.sumOf { settings[it]?.amount ?: 0L }
-            if (dailySum > 0) {
+            val sum = categoryTargets.sumOf { current[it] ?: 0L }
+            if (sum > 0) {
                 item {
                     HorizontalDivider()
                     Text(
-                        "カテゴリ合計　${monthlyBudgetLabel(dailySum, period)}",
+                        "カテゴリ合計　${summary(sum)}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -98,12 +141,12 @@ internal fun DailyBudgetContent(
 
     editing?.let { target ->
         BudgetDialog(
-            title = "${target.label}の1日の予算",
-            description = CARRYOVER_RULE,
-            current = settings[target]?.amount ?: 0L,
-            preview = { monthlyBudgetLabel(it, period) },
+            title = "${target.label}の${kind.label}の予算",
+            description = kindDescription(kind),
+            current = current[target] ?: 0L,
+            preview = { summary(it) },
             onDismiss = { editing = null },
-            onSave = { onSave(target, it); editing = null },
+            onSave = { onSave(kind, target, it); editing = null },
         )
     }
 }
@@ -119,17 +162,17 @@ private fun SectionHeader(text: String) {
 }
 
 @Composable
-private fun TargetRow(target: BudgetTarget, setting: DailyBudgetSetting?, period: Period, onClick: () -> Unit) {
+private fun TargetRow(target: BudgetTarget, summary: String?, onClick: () -> Unit) {
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),
         leadingContent = { TargetBadge(target) },
         headlineContent = { Text(target.label) },
         supportingContent = {
             Text(
-                if (setting != null) monthlyBudgetLabel(setting.amount, period) else "未設定",
-                color = if (setting != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                summary ?: "未設定",
+                color = if (summary != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
-        trailingContent = { Icon(Icons.Outlined.Edit, "${target.label}の1日の予算を設定") },
+        trailingContent = { Icon(Icons.Outlined.Edit, "${target.label}の予算を設定") },
     )
 }

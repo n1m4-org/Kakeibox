@@ -3,6 +3,7 @@ package com.kakeibox.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,7 +31,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kakeibox.data.BudgetTarget
 import com.kakeibox.data.TxType
+import com.kakeibox.ui.components.BudgetProgress
 import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.components.CategoryBadge
 import com.kakeibox.ui.components.DonutChart
@@ -43,6 +46,7 @@ fun ReportScreen(vm: MainViewModel, contentPadding: PaddingValues) {
     val period by vm.period.collectAsStateWithLifecycle()
     val summary by vm.summary.collectAsStateWithLifecycle()
     var type by rememberSaveable { mutableStateOf(TxType.EXPENSE) }
+    val monthlyBudgets by vm.monthlyBudget.collectAsStateWithLifecycle()
 
     val items = if (type == TxType.EXPENSE) summary.expenseByCategory else summary.incomeByCategory
     val total = if (type == TxType.EXPENSE) summary.expense else summary.income
@@ -64,16 +68,29 @@ fun ReportScreen(vm: MainViewModel, contentPadding: PaddingValues) {
             }
         }
         items(items, key = { it.category.name }) { ct ->
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(Modifier.size(6.dp, 28.dp).background(Color(ct.category.color), CircleShape))
-                CategoryBadge(ct.category, size = 32.dp)
-                Text(ct.category.label, Modifier.weight(1f))
-                Text("%.1f%%".format(ct.ratio * 100), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(yen(ct.total), style = MaterialTheme.typography.titleSmall)
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(Modifier.size(6.dp, 28.dp).background(Color(ct.category.color), CircleShape))
+                    CategoryBadge(ct.category, size = 32.dp)
+                    Text(ct.category.label, Modifier.weight(1f))
+                    Text("%.1f%%".format(ct.ratio * 100), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(yen(ct.total), style = MaterialTheme.typography.titleSmall)
+                }
+                // カテゴリの月予算があれば進捗を表示
+                monthlyBudgets[BudgetTarget.Of(ct.category)]?.takeIf { type == TxType.EXPENSE }?.let { budget ->
+                    val ratio = ct.total.toFloat() / budget
+                    Column(Modifier.padding(start = 62.dp, top = 6.dp)) {
+                        BudgetProgress(ratio)
+                        Text(
+                            "月予算 ${yen(budget)} の ${(ratio * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
         if (type == TxType.EXPENSE && summary.expenseByPayment.isNotEmpty()) {

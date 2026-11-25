@@ -7,7 +7,11 @@ import com.kakeibox.AppGraph
 import com.kakeibox.data.Category
 import com.kakeibox.data.DailyBudgetSetting
 import com.kakeibox.data.AppSettings
+import com.kakeibox.data.BudgetKind
 import com.kakeibox.data.BudgetTarget
+import com.kakeibox.data.PlainBudgetStatus
+import com.kakeibox.data.Week
+import com.kakeibox.data.plainBudgetStatuses
 import com.kakeibox.data.TargetStatus
 import com.kakeibox.data.computeTodayStatuses
 import kotlinx.coroutines.flow.combine
@@ -64,8 +68,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         .map { MonthSummary.from(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MonthSummary.EMPTY)
 
-    val budget: StateFlow<Long> = budgetStore.budget
     val dailyBudget: StateFlow<Map<BudgetTarget, DailyBudgetSetting>> = budgetStore.daily
+    val weeklyBudget: StateFlow<Map<BudgetTarget, Long>> = budgetStore.weekly
+    val monthlyBudget: StateFlow<Map<BudgetTarget, Long>> = budgetStore.monthly
+
+    /** 表示中の期間の、月予算の状況 */
+    val monthlyStatuses: StateFlow<List<PlainBudgetStatus>> = period
+        .flatMapLatest { p ->
+            combine(repo.observeDailyExpense(p), budgetStore.monthly) { spent, budgets -> plainBudgetStatuses(budgets, spent) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** 今週の週予算の状況 */
+    val weeklyStatuses: StateFlow<List<PlainBudgetStatus>> = Week.of(LocalDate.now()).let { w ->
+        combine(repo.observeDailyExpense(w.start, w.endInclusive), budgetStore.weekly) { spent, budgets ->
+            plainBudgetStatuses(budgets, spent)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    }
 
     /** 設定済みの対象ごとの今日の予算の状況 */
     val todayStatuses: StateFlow<List<TargetStatus>> =
@@ -96,13 +115,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun save(tx: Transaction) = viewModelScope.launch { repo.save(tx) }
     fun delete(tx: Transaction) = viewModelScope.launch { repo.delete(tx) }
-    fun setBudget(value: Long) {
-        budgetStore.set(value)
-        refreshWidgets()
-    }
-
-    fun setDailyBudget(target: BudgetTarget, value: Long) {
-        budgetStore.setDaily(target, value)
+    fun setBudget(kind: BudgetKind, target: BudgetTarget, value: Long) {
+        budgetStore.set(kind, target, value)
         refreshWidgets()
     }
 
