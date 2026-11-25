@@ -7,6 +7,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Lock
+import android.widget.Toast
+import androidx.fragment.app.FragmentActivity
+import com.kakeibox.security.AppLock
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Restore
@@ -75,6 +79,22 @@ fun SettingsScreen(vm: MainViewModel, contentPadding: PaddingValues, navigation:
         onUpdate = vm::updateSettings,
         notificationsAllowed = allowed,
         dataActions = rememberDataActions(),
+        onAppLockChange = { on ->
+            val activity = context as? FragmentActivity
+            when {
+                activity == null -> Unit
+                on && !AppLock.canAuthenticate(context) ->
+                    Toast.makeText(context, "端末に画面ロック（PIN・パターン・指紋など）を設定してください", Toast.LENGTH_LONG).show()
+                else -> AppLock.authenticate(
+                    activity,
+                    if (on) "アプリロックをオンにする" else "アプリロックをオフにする",
+                    onSuccess = {
+                        AppLock.markUnlocked()
+                        vm.updateSettings { it.copy(appLock = on) }
+                    },
+                )
+            }
+        },
         withNotificationPermission = { action ->
             if (Notifications.canPost(context) || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                 action()
@@ -98,6 +118,7 @@ internal fun SettingsContent(
     /** 通知の許可を確認してから action を実行する */
     withNotificationPermission: (action: () -> Unit) -> Unit = { it() },
     dataActions: DataActions = DataActions(),
+    onAppLockChange: (Boolean) -> Unit = {},
 ) {
     var dialog by rememberSaveable { mutableStateOf<SettingsDialog?>(null) }
 
@@ -193,6 +214,17 @@ internal fun SettingsContent(
         item { SettingsItem("CSVから取り込む", Icons.Outlined.FileUpload, "日付,種別,カテゴリ,金額,支払い方法,メモ の形式", onClick = dataActions.importCsv) }
         item { SettingsItem("バックアップを保存", Icons.Outlined.Backup, "明細・テンプレート・定期の収支・予算・設定をファイルに保存", onClick = dataActions.backup) }
         item { SettingsItem("バックアップから復元", Icons.Outlined.Restore, "機種変更のときなどに。現在のデータは置き換わります", onClick = dataActions.restore) }
+
+        item { SettingsSection("セキュリティ") }
+        item {
+            SettingsSwitch(
+                "アプリロック",
+                Icons.Outlined.Lock,
+                settings.appLock,
+                summary = "起動時と、1分以上たってから戻ったときに指紋・顔認証または端末のPINで解除",
+                onCheckedChange = onAppLockChange,
+            )
+        }
 
         item { SettingsSection("表示") }
         item {

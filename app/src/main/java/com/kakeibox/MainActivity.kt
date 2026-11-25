@@ -3,7 +3,10 @@ package com.kakeibox
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
+import androidx.compose.foundation.layout.Box
+import com.kakeibox.security.AppLock
+import com.kakeibox.security.LockScreen
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material.icons.Icons
@@ -62,20 +65,55 @@ import com.kakeibox.ui.theme.KakeiboxTheme
 import com.kakeibox.ui.yen
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
+    private var locked by mutableStateOf(false)
+    private var lockMessage by mutableStateOf<String?>(null)
+    private var prompting = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         // ウィジェットから特定の画面（入力・予算設定）を指定して起動された場合はその画面から始める
         val startRoute = if (savedInstanceState == null) intent.getStringExtra(EXTRA_START_ROUTE) else null
-        setContent { KakeiboxTheme { KakeiboxApp(startRoute = startRoute) } }
+        setContent {
+            KakeiboxTheme {
+                Box {
+                    KakeiboxApp(startRoute = startRoute)
+                    // ロック中は上に重ねて隠す（画面の状態は保ったまま）
+                    if (locked) LockScreen(lockMessage, onUnlock = ::unlock, onBack = { moveTaskToBack(true) })
+                }
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val enabled = AppGraph.settingsStore(this).settings.value.appLock
+        if (AppLock.shouldLock(enabled)) locked = true else if (!enabled) locked = false
     }
 
     override fun onResume() {
         super.onResume()
         // 記録日が来た定期の収支を登録（WorkManagerの実行待ちを補う）
         lifecycleScope.launch { RecurringRunner.run(applicationContext) }
+        if (locked) unlock()
     }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) AppLock.onBackground()
+    }
+
+    private fun unlock() {
+        if (prompting) return
+        prompting = true
+        AppLock.authenticate(
+            this, "Kakeibox のロックを解除",
+            onSuccess = { prompting = false; AppLock.markUnlocked(); locked = false; lockMessage = null },
+            onFailure = { prompting = false; lockMessage = it },
+        )
+    }
+
 
     companion object {
         const val EXTRA_START_ROUTE = "start_route"

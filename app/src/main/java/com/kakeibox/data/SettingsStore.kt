@@ -30,6 +30,8 @@ data class AppSettings(
     val reminderMinutes: Int = 21 * 60,
     /** 使いすぎ通知 */
     val budgetAlertEnabled: Boolean = false,
+    /** アプリロック */
+    val appLock: Boolean = false,
 )
 
 /** 設定の保存（SharedPreferences）と購読 */
@@ -61,6 +63,7 @@ class SettingsStore(context: Context) {
             .putBoolean(KEY_REMINDER, s.reminderEnabled)
             .putInt(KEY_REMINDER_MINUTES, s.reminderMinutes)
             .putBoolean(KEY_BUDGET_ALERT, s.budgetAlertEnabled)
+            .putBoolean(KEY_APP_LOCK, s.appLock)
             .apply()
     }
 
@@ -73,6 +76,7 @@ class SettingsStore(context: Context) {
         const val KEY_REMINDER = "reminder"
         const val KEY_REMINDER_MINUTES = "reminder_minutes"
         const val KEY_BUDGET_ALERT = "budget_alert"
+        const val KEY_APP_LOCK = "app_lock"
 
         fun load(p: SharedPreferences) = AppSettings(
             theme = p.getString(KEY_THEME, null)?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
@@ -83,6 +87,7 @@ class SettingsStore(context: Context) {
             reminderEnabled = p.getBoolean(KEY_REMINDER, false),
             reminderMinutes = p.getInt(KEY_REMINDER_MINUTES, 21 * 60).coerceIn(0, 24 * 60 - 1),
             budgetAlertEnabled = p.getBoolean(KEY_BUDGET_ALERT, false),
+            appLock = p.getBoolean(KEY_APP_LOCK, false),
         )
     }
 }
