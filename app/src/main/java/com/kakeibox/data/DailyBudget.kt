@@ -1,7 +1,6 @@
 package com.kakeibox.data
 
 import java.time.LocalDate
-import java.time.YearMonth
 
 /** 1日予算の対象：全体（すべての支出）または支出カテゴリ */
 sealed interface BudgetTarget {
@@ -26,8 +25,8 @@ sealed interface BudgetTarget {
     }
 }
 
-/** 今月の予算 = 1日の予算 × 月の日数 */
-fun monthlyBudget(daily: Long, month: YearMonth): Long = daily * month.lengthOfMonth()
+/** 1か月（期間）の予算 = 1日の予算 × 期間の日数 */
+fun monthlyBudget(daily: Long, period: Period): Long = daily * period.days
 
 /** 対象の日別支出（epochDay → 合計）。全体は全カテゴリを合算する。 */
 fun List<DayCategoryTotal>.spentByDay(target: BudgetTarget): Map<Long, Long> =
@@ -59,7 +58,7 @@ data class DailyBudgetStatus(
 /**
  * 固定額＋繰り越しで今日の予算を計算する。
  *
- * 繰り越し = Σ(日予算 − その日の支出)  対象: max(月初, 設定日) 〜 昨日
+ * 繰り越し = Σ(日予算 − その日の支出)  対象: max(期間の開始日, 設定日) 〜 昨日
  *
  * @param spentByDay epochDay → その日の支出合計
  * @return 日予算が未設定(0以下)なら null
@@ -69,9 +68,10 @@ fun computeDailyBudget(
     since: LocalDate,
     today: LocalDate,
     spentByDay: Map<Long, Long>,
+    periodStart: LocalDate = today.withDayOfMonth(1),
 ): DailyBudgetStatus? {
     if (daily <= 0) return null
-    val start = maxOf(today.withDayOfMonth(1), since).toEpochDay()
+    val start = maxOf(periodStart, since).toEpochDay()
     val end = today.toEpochDay()
     var carryover = 0L
     for (day in start until end) {
@@ -93,9 +93,10 @@ fun computeTodayStatuses(
     settings: Map<BudgetTarget, DailyBudgetSetting>,
     spent: List<DayCategoryTotal>,
     today: LocalDate,
+    periodStart: LocalDate = today.withDayOfMonth(1),
 ): List<TargetStatus> =
     BudgetTarget.entries.mapNotNull { target ->
         val setting = settings[target] ?: return@mapNotNull null
-        computeDailyBudget(setting.amount, LocalDate.ofEpochDay(setting.since), today, spent.spentByDay(target))
+        computeDailyBudget(setting.amount, LocalDate.ofEpochDay(setting.since), today, spent.spentByDay(target), periodStart)
             ?.let { TargetStatus(target, it) }
     }

@@ -38,7 +38,7 @@ import com.kakeibox.ui.yen
 
 @Composable
 fun ReportScreen(vm: MainViewModel, contentPadding: PaddingValues) {
-    val month by vm.month.collectAsStateWithLifecycle()
+    val period by vm.period.collectAsStateWithLifecycle()
     val summary by vm.summary.collectAsStateWithLifecycle()
     var type by rememberSaveable { mutableStateOf(TxType.EXPENSE) }
 
@@ -46,7 +46,7 @@ fun ReportScreen(vm: MainViewModel, contentPadding: PaddingValues) {
     val total = if (type == TxType.EXPENSE) summary.expense else summary.income
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = contentPadding) {
-        item { MonthSelector(month, vm::prevMonth, vm::nextMonth, vm::thisMonth) }
+        item { MonthSelector(period, vm::prevMonth, vm::nextMonth, vm::thisMonth) }
         item {
             TypeToggle(type, onChange = { type = it }, modifier = Modifier.padding(horizontal = 16.dp))
             Spacer(Modifier.height(16.dp))

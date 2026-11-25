@@ -1,7 +1,6 @@
 package com.kakeibox.data
 
 import kotlinx.coroutines.flow.Flow
-import java.time.YearMonth
 
 /**
  * 収支データへの窓口。
@@ -11,21 +10,21 @@ class TransactionRepository(
     private val dao: TransactionDao,
     private val onChanged: suspend () -> Unit = {},
 ) {
-    fun observeMonth(month: YearMonth): Flow<List<Transaction>> =
-        dao.observeBetween(month.atDay(1).toEpochDay(), month.atEndOfMonth().toEpochDay())
+    fun observePeriod(period: Period): Flow<List<Transaction>> =
+        dao.observeBetween(period.startEpochDay, period.endEpochDay)
 
-    suspend fun monthExpense(month: YearMonth): Long =
-        dao.sumExpenseBetween(month.atDay(1).toEpochDay(), month.atEndOfMonth().toEpochDay())
+    suspend fun periodExpense(period: Period): Long =
+        dao.sumExpenseBetween(period.startEpochDay, period.endEpochDay)
 
-    fun observeMonthExpense(month: YearMonth): Flow<Long> =
-        dao.observeSumExpenseBetween(month.atDay(1).toEpochDay(), month.atEndOfMonth().toEpochDay())
+    fun observePeriodExpense(period: Period): Flow<Long> =
+        dao.observeSumExpenseBetween(period.startEpochDay, period.endEpochDay)
 
-    /** 月内の日別・カテゴリ別支出 */
-    fun observeDailyExpense(month: YearMonth): Flow<List<DayCategoryTotal>> =
-        dao.observeDailyExpense(month.atDay(1).toEpochDay(), month.atEndOfMonth().toEpochDay())
+    /** 期間内の日別・カテゴリ別支出 */
+    fun observeDailyExpense(period: Period): Flow<List<DayCategoryTotal>> =
+        dao.observeDailyExpense(period.startEpochDay, period.endEpochDay)
 
-    suspend fun dailyExpense(month: YearMonth): List<DayCategoryTotal> =
-        dao.dailyExpense(month.atDay(1).toEpochDay(), month.atEndOfMonth().toEpochDay())
+    suspend fun dailyExpense(period: Period): List<DayCategoryTotal> =
+        dao.dailyExpense(period.startEpochDay, period.endEpochDay)
 
     suspend fun findById(id: Long) = dao.findById(id)
 

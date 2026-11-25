@@ -12,6 +12,7 @@ import com.kakeibox.data.TargetStatus
 import com.kakeibox.data.computeTodayStatuses
 import kotlinx.coroutines.flow.combine
 import com.kakeibox.data.MonthSummary
+import com.kakeibox.data.Period
 import com.kakeibox.data.Transaction
 import com.kakeibox.data.TxType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,7 +28,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.YearMonth
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -38,11 +38,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val settings: StateFlow<AppSettings> = settingsStore.settings
     fun updateSettings(transform: (AppSettings) -> AppSettings) = settingsStore.update(transform)
 
-    private val _month = MutableStateFlow(YearMonth.now())
-    val month: StateFlow<YearMonth> = _month.asStateFlow()
+    /** 今日を含む期間（締め日の設定に追従） */
+    val currentPeriod: StateFlow<Period> = settingsStore.settings
+        .map { Period.of(LocalDate.now(), it.periodStartDay) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, settingsStore.currentPeriod())
 
-    val transactions: StateFlow<List<Transaction>> = _month
-        .flatMapLatest { repo.observeMonth(it) }
+    /** 表示中の期間（今の期間からのずれ） */
+    private val _offset = MutableStateFlow(0L)
+    val period: StateFlow<Period> = combine(currentPeriod, _offset) { p, off -> p.shift(off) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, settingsStore.currentPeriod())
+
+    val transactions: StateFlow<List<Transaction>> = period
+        .flatMapLatest { repo.observePeriod(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val summary: StateFlow<MonthSummary> = transactions
@@ -54,17 +61,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** 設定済みの対象ごとの今日の予算の状況 */
     val todayStatuses: StateFlow<List<TargetStatus>> =
-        combine(repo.observeDailyExpense(YearMonth.now()), budgetStore.daily) { spent, settings ->
-            computeTodayStatuses(settings, spent, LocalDate.now())
+        currentPeriod.flatMapLatest { p ->
+            combine(repo.observeDailyExpense(p), budgetStore.daily) { spent, settings ->
+                computeTodayStatuses(settings, spent, LocalDate.now(), p.start)
+            }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** クイック入力で保存した記録（取り消し用のSnackbar表示に使う） */
     private val _quickAdded = MutableSharedFlow<Transaction>(extraBufferCapacity = 1)
     val quickAdded: SharedFlow<Transaction> = _quickAdded.asSharedFlow()
 
-    fun prevMonth() { _month.value = _month.value.minusMonths(1) }
-    fun nextMonth() { _month.value = _month.value.plusMonths(1) }
-    fun thisMonth() { _month.value = YearMonth.now() }
+    fun prevMonth() { _offset.value -= 1 }
+    fun nextMonth() { _offset.value += 1 }
+    fun thisMonth() { _offset.value = 0 }
 
     suspend fun find(id: Long): Transaction? = repo.findById(id)
 

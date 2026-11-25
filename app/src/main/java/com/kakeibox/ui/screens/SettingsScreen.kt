@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -14,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kakeibox.data.AppSettings
+import com.kakeibox.data.Period
 import com.kakeibox.data.ThemeMode
 import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.components.ChoiceDialog
@@ -31,7 +33,7 @@ fun SettingsScreen(vm: MainViewModel, contentPadding: PaddingValues, navigation:
     SettingsContent(settings, contentPadding, navigation, onUpdate = vm::updateSettings)
 }
 
-private enum class SettingsDialog { THEME }
+private enum class SettingsDialog { THEME, PERIOD_START }
 
 @Composable
 internal fun SettingsContent(
@@ -46,6 +48,15 @@ internal fun SettingsContent(
         item { SettingsSection("予算") }
         item {
             SettingsItem("予算の設定", Icons.Outlined.Savings, "全体・カテゴリごとの1日の予算", onClick = navigation.openBudgets)
+        }
+
+        item { SettingsSection("期間") }
+        item {
+            SettingsItem(
+                "月の開始日（締め日）",
+                Icons.Outlined.EventRepeat,
+                periodStartLabel(settings.periodStartDay),
+            ) { dialog = SettingsDialog.PERIOD_START }
         }
 
         item { SettingsSection("表示") }
@@ -63,6 +74,18 @@ internal fun SettingsContent(
             onDismiss = { dialog = null },
             onSelect = { mode -> onUpdate { it.copy(theme = mode) }; dialog = null },
         )
+        SettingsDialog.PERIOD_START -> ChoiceDialog(
+            title = "月の開始日",
+            options = (1..Period.MAX_START_DAY).toList(),
+            selected = settings.periodStartDay,
+            label = ::periodStartLabel,
+            onDismiss = { dialog = null },
+            onSelect = { day -> onUpdate { it.copy(periodStartDay = day) }; dialog = null },
+        )
         null -> Unit
     }
 }
+
+/** 「毎月1日（カレンダーどおり）」「毎月25日〜翌月24日」 */
+internal fun periodStartLabel(day: Int): String =
+    if (day == 1) "毎月1日（カレンダーどおり）" else "毎月${day}日〜翌月${day - 1}日"

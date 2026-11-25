@@ -33,11 +33,11 @@ import androidx.lifecycle.lifecycleScope
 import com.kakeibox.AppGraph
 import com.kakeibox.data.BudgetTarget
 import com.kakeibox.data.DailyBudgetSetting
+import com.kakeibox.data.Period
 import com.kakeibox.ui.components.TargetBadge
 import com.kakeibox.ui.monthlyBudgetLabel
 import com.kakeibox.ui.theme.KakeiboxTheme
 import kotlinx.coroutines.launch
-import java.time.YearMonth
 
 /** 「今日の予算」ウィジェットの配置時（と再設定時）に、表示する予算対象を選ぶ画面 */
 class DailyBudgetWidgetConfigActivity : ComponentActivity() {
@@ -64,7 +64,7 @@ class DailyBudgetWidgetConfigActivity : ComponentActivity() {
         setContent {
             KakeiboxTheme {
                 val settings by AppGraph.budgetStore(this).daily.collectAsStateWithLifecycle()
-                ConfigContent(settings, current, YearMonth.now()) { target ->
+                ConfigContent(settings, current, AppGraph.settingsStore(this).currentPeriod()) { target ->
                     lifecycleScope.launch {
                         val glanceId = glanceManager.getGlanceIdBy(appWidgetId)
                         updateAppWidgetState(this@DailyBudgetWidgetConfigActivity, glanceId) {
@@ -85,7 +85,7 @@ class DailyBudgetWidgetConfigActivity : ComponentActivity() {
 internal fun ConfigContent(
     settings: Map<BudgetTarget, DailyBudgetSetting>,
     currentKey: String?,
-    month: YearMonth,
+    period: Period,
     onSelect: (BudgetTarget) -> Unit,
 ) {
     Scaffold(topBar = { TopAppBar(title = { Text("ウィジェットに表示する予算") }) }) { padding ->
@@ -105,7 +105,7 @@ internal fun ConfigContent(
                     leadingContent = { TargetBadge(target) },
                     headlineContent = { Text(target.label) },
                     supportingContent = {
-                        Text(if (setting != null) monthlyBudgetLabel(setting.amount, month) else "未設定")
+                        Text(if (setting != null) monthlyBudgetLabel(setting.amount, period) else "未設定")
                     },
                     trailingContent = { RadioButton(selected = target.key == currentKey, onClick = { onSelect(target) }) },
                 )

@@ -29,28 +29,29 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kakeibox.data.BudgetTarget
 import com.kakeibox.data.DailyBudgetSetting
+import com.kakeibox.data.Period
 import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.components.BudgetDialog
 import com.kakeibox.ui.components.TargetBadge
 import com.kakeibox.ui.monthlyBudgetLabel
-import java.time.YearMonth
 
 const val CARRYOVER_RULE =
-    "使わなかった分は翌日に繰り越され、使いすぎた分は翌日の予算から差し引かれます（月初にリセット）。" +
+    "使わなかった分は翌日に繰り越され、使いすぎた分は翌日の予算から差し引かれます（新しい月の開始日にリセット）。" +
         "金額を変更すると、繰り越しは今日から数え直します。"
 
 /** 全体・カテゴリごとの1日予算の設定画面 */
 @Composable
 fun DailyBudgetScreen(vm: MainViewModel, onBack: () -> Unit) {
     val settings by vm.dailyBudget.collectAsStateWithLifecycle()
-    DailyBudgetContent(settings, YearMonth.now(), onBack, onSave = vm::setDailyBudget)
+    val period by vm.currentPeriod.collectAsStateWithLifecycle()
+    DailyBudgetContent(settings, period, onBack, onSave = vm::setDailyBudget)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun DailyBudgetContent(
     settings: Map<BudgetTarget, DailyBudgetSetting>,
-    month: YearMonth,
+    period: Period,
     onBack: () -> Unit,
     onSave: (BudgetTarget, Long) -> Unit,
 ) {
@@ -75,17 +76,17 @@ internal fun DailyBudgetContent(
                 )
             }
             item { SectionHeader("全体（すべての支出）") }
-            item { TargetRow(BudgetTarget.All, settings[BudgetTarget.All], month) { editing = BudgetTarget.All } }
+            item { TargetRow(BudgetTarget.All, settings[BudgetTarget.All], period) { editing = BudgetTarget.All } }
             item { SectionHeader("カテゴリ別") }
             items(categoryTargets, key = { it.key }) { t ->
-                TargetRow(t, settings[t], month) { editing = t }
+                TargetRow(t, settings[t], period) { editing = t }
             }
             val dailySum = categoryTargets.sumOf { settings[it]?.amount ?: 0L }
             if (dailySum > 0) {
                 item {
                     HorizontalDivider()
                     Text(
-                        "カテゴリ合計　${monthlyBudgetLabel(dailySum, month)}",
+                        "カテゴリ合計　${monthlyBudgetLabel(dailySum, period)}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -100,7 +101,7 @@ internal fun DailyBudgetContent(
             title = "${target.label}の1日の予算",
             description = CARRYOVER_RULE,
             current = settings[target]?.amount ?: 0L,
-            preview = { monthlyBudgetLabel(it, month) },
+            preview = { monthlyBudgetLabel(it, period) },
             onDismiss = { editing = null },
             onSave = { onSave(target, it); editing = null },
         )
@@ -118,14 +119,14 @@ private fun SectionHeader(text: String) {
 }
 
 @Composable
-private fun TargetRow(target: BudgetTarget, setting: DailyBudgetSetting?, month: YearMonth, onClick: () -> Unit) {
+private fun TargetRow(target: BudgetTarget, setting: DailyBudgetSetting?, period: Period, onClick: () -> Unit) {
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),
         leadingContent = { TargetBadge(target) },
         headlineContent = { Text(target.label) },
         supportingContent = {
             Text(
-                if (setting != null) monthlyBudgetLabel(setting.amount, month) else "未設定",
+                if (setting != null) monthlyBudgetLabel(setting.amount, period) else "未設定",
                 color = if (setting != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },

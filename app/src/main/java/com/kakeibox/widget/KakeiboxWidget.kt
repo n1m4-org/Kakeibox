@@ -32,24 +32,27 @@ import com.kakeibox.AppGraph
 import com.kakeibox.MainActivity
 import com.kakeibox.QuickAddActivity
 import com.kakeibox.ui.yen
-import java.time.YearMonth
+import com.kakeibox.data.Period
+import java.time.LocalDate
 
 /** 今月の支出合計と「支出を追加」ボタンを表示するホーム画面ウィジェット */
 class KakeiboxWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repo = AppGraph.repository(context)
-        val initial = repo.monthExpense(YearMonth.now())
+        val settingsStore = AppGraph.settingsStore(context)
+        val initial = repo.periodExpense(settingsStore.currentPeriod())
         provideContent {
-            // セッション中の更新（記録の追加・月替わり）にも追従するため、合計はFlowで購読する
-            val month = YearMonth.now()
-            val flow = remember(month) { repo.observeMonthExpense(month) }
+            // セッション中の更新（記録の追加・月替わり・締め日変更）にも追従するため、合計はFlowで購読する
+            val settings by settingsStore.settings.collectAsState()
+            val period = Period.of(LocalDate.now(), settings.periodStartDay)
+            val flow = remember(period) { repo.observePeriodExpense(period) }
             val total by flow.collectAsState(initial)
-            GlanceTheme { Content(month, total) }
+            GlanceTheme { Content(period, total) }
         }
     }
 
     @Composable
-    private fun Content(month: YearMonth, total: Long) {
+    private fun Content(period: Period, total: Long) {
         Column(
             modifier = GlanceModifier.fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
@@ -60,7 +63,7 @@ class KakeiboxWidget : GlanceAppWidget() {
             horizontalAlignment = Alignment.Start,
         ) {
             Text(
-                "${month.monthValue}月の支出",
+                "${if (period.startDay == 1) "${period.start.monthValue}月" else "今月"}の支出",
                 style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
             )
             Text(

@@ -50,6 +50,7 @@ import com.kakeibox.R
 import com.kakeibox.data.BudgetTarget
 import com.kakeibox.data.Category
 import com.kakeibox.data.DailyBudgetStatus
+import com.kakeibox.data.Period
 import com.kakeibox.data.computeDailyBudget
 import com.kakeibox.data.spentByDay
 import com.kakeibox.ui.color
@@ -59,7 +60,6 @@ import com.kakeibox.ui.theme.WarningColor
 import com.kakeibox.ui.signedYen
 import com.kakeibox.ui.yen
 import java.time.LocalDate
-import java.time.YearMonth
 
 /**
  * 1つの予算対象（全体 or カテゴリ）について、今日の予算の使用状況を表示するウィジェット。
@@ -72,25 +72,28 @@ class DailyBudgetWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repo = AppGraph.repository(context)
         val budgetStore = AppGraph.budgetStore(context)
-        val initialSpent = repo.dailyExpense(YearMonth.now())
+        val settingsStore = AppGraph.settingsStore(context)
+        val initialSpent = repo.dailyExpense(settingsStore.currentPeriod())
 
         provideContent {
             // セッション中の更新（記録・予算・対象の変更、日付の切り替わり）にも追従するよう、すべて購読する
             val target = BudgetTarget.fromKey(currentState(TARGET_KEY))
-            val month = YearMonth.now()
-            val spentFlow = remember(month) { repo.observeDailyExpense(month) }
+            val appSettings by settingsStore.settings.collectAsState()
+            val today = LocalDate.now()
+            val period = Period.of(today, appSettings.periodStartDay)
+            val spentFlow = remember(period) { repo.observeDailyExpense(period) }
             val spent by spentFlow.collectAsState(initialSpent)
             val settings by budgetStore.daily.collectAsState()
 
             val status = settings[target]?.let {
-                computeDailyBudget(it.amount, LocalDate.ofEpochDay(it.since), LocalDate.now(), spent.spentByDay(target))
+                computeDailyBudget(it.amount, LocalDate.ofEpochDay(it.since), today, spent.spentByDay(target), period.start)
             }
-            GlanceTheme { Content(context, target, status, month) }
+            GlanceTheme { Content(context, target, status, period) }
         }
     }
 
     @Composable
-    private fun Content(context: Context, target: BudgetTarget, status: DailyBudgetStatus?, month: YearMonth) {
+    private fun Content(context: Context, target: BudgetTarget, status: DailyBudgetStatus?, period: Period) {
         val sub = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp)
         val tapAction = if (status == null) {
             actionStartActivity(MainActivity.openBudgetsIntent(context))
@@ -157,7 +160,7 @@ class DailyBudgetWidget : GlanceAppWidget() {
             )
             Spacer(GlanceModifier.height(6.dp))
             Text("使用 ${yen(status.spentToday)} / ${signedYen(status.todayBudget)}", style = sub, maxLines = 1)
-            Text(monthlyBudgetLabel(status.daily, month), style = sub, maxLines = 1)
+            Text(monthlyBudgetLabel(status.daily, period), style = sub, maxLines = 1)
         }
     }
 

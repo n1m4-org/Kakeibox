@@ -14,11 +14,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.kakeibox.ui.label
-import java.time.YearMonth
+import com.kakeibox.data.Period
 
 @Composable
-fun MonthSelector(month: YearMonth, onPrev: () -> Unit, onNext: () -> Unit, onToday: () -> Unit) {
+fun MonthSelector(period: Period, onPrev: () -> Unit, onNext: () -> Unit, onToday: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -26,7 +25,7 @@ fun MonthSelector(month: YearMonth, onPrev: () -> Unit, onNext: () -> Unit, onTo
     ) {
         IconButton(onClick = onPrev) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "前の月") }
         TextButton(onClick = onToday) {
-            Text(month.label(), style = MaterialTheme.typography.titleLarge)
+            Text(period.label, style = MaterialTheme.typography.titleLarge)
         }
         IconButton(onClick = onNext) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "次の月") }
     }

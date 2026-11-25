@@ -41,6 +41,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kakeibox.data.BudgetTarget
 import com.kakeibox.data.TargetStatus
 import com.kakeibox.data.MonthSummary
+import com.kakeibox.data.Period
 import com.kakeibox.data.Transaction
 import com.kakeibox.data.TxType
 import com.kakeibox.ui.MainViewModel
@@ -56,7 +57,6 @@ import com.kakeibox.ui.signedYen
 import com.kakeibox.ui.theme.ExpenseColor
 import com.kakeibox.ui.theme.IncomeColor
 import com.kakeibox.ui.yen
-import java.time.YearMonth
 
 @Composable
 fun HomeScreen(
@@ -65,7 +65,8 @@ fun HomeScreen(
     onEdit: (Long) -> Unit,
     onOpenBudgets: () -> Unit,
 ) {
-    val month by vm.month.collectAsStateWithLifecycle()
+    val period by vm.period.collectAsStateWithLifecycle()
+    val currentPeriod by vm.currentPeriod.collectAsStateWithLifecycle()
     val list by vm.transactions.collectAsStateWithLifecycle()
     val summary by vm.summary.collectAsStateWithLifecycle()
     val budget by vm.budget.collectAsStateWithLifecycle()
@@ -81,9 +82,9 @@ fun HomeScreen(
             bottom = contentPadding.calculateBottomPadding() + 88.dp,
         ),
     ) {
-        item { MonthSelector(month, vm::prevMonth, vm::nextMonth, vm::thisMonth) }
-        if (month == YearMonth.now()) {
-            item { TodayCard(todayStatuses, month, onOpenBudgets) }
+        item { MonthSelector(period, vm::prevMonth, vm::nextMonth, vm::thisMonth) }
+        if (period == currentPeriod) {
+            item { TodayCard(todayStatuses, period, onOpenBudgets) }
         }
         item { SummaryCard(summary, budget, onEditBudget = { showMonthlyDialog = true }) }
 
@@ -127,7 +128,7 @@ fun HomeScreen(
 
 /** 今日の予算（設定済みの対象ごと） */
 @Composable
-internal fun TodayCard(statuses: List<TargetStatus>, month: YearMonth, onOpenBudgets: () -> Unit) {
+internal fun TodayCard(statuses: List<TargetStatus>, period: Period, onOpenBudgets: () -> Unit) {
     Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -144,14 +145,14 @@ internal fun TodayCard(statuses: List<TargetStatus>, month: YearMonth, onOpenBud
             }
             statuses.forEachIndexed { i, ts ->
                 if (i > 0) HorizontalDivider(Modifier.padding(vertical = 10.dp))
-                TargetStatusRow(ts, month)
+                TargetStatusRow(ts, period)
             }
             val categories = statuses.filter { it.target is BudgetTarget.Of }
             if (categories.size >= 2) {
                 val dailySum = categories.sumOf { it.status.daily }
                 HorizontalDivider(Modifier.padding(vertical = 10.dp))
                 Text(
-                    "カテゴリ合計　${monthlyBudgetLabel(dailySum, month)}",
+                    "カテゴリ合計　${monthlyBudgetLabel(dailySum, period)}",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -161,7 +162,7 @@ internal fun TodayCard(statuses: List<TargetStatus>, month: YearMonth, onOpenBud
 }
 
 @Composable
-private fun TargetStatusRow(ts: TargetStatus, month: YearMonth) {
+private fun TargetStatusRow(ts: TargetStatus, period: Period) {
     val status = ts.status
     val over = status.remaining < 0
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -182,7 +183,7 @@ private fun TargetStatusRow(ts: TargetStatus, month: YearMonth) {
             color = if (status.carryover < 0) ExpenseColor else MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            monthlyBudgetLabel(status.daily, month),
+            monthlyBudgetLabel(status.daily, period),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

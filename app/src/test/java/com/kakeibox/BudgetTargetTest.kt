@@ -4,13 +4,13 @@ import com.kakeibox.data.BudgetTarget
 import com.kakeibox.data.Category
 import com.kakeibox.data.DailyBudgetSetting
 import com.kakeibox.data.DayCategoryTotal
+import com.kakeibox.data.Period
 import com.kakeibox.data.computeTodayStatuses
 import com.kakeibox.data.monthlyBudget
 import com.kakeibox.data.spentByDay
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
-import java.time.YearMonth
 
 class BudgetTargetTest {
     private fun day(d: Int) = LocalDate.of(2026, 11, d).toEpochDay()
@@ -44,10 +44,13 @@ class BudgetTargetTest {
 
     @Test
     fun monthlyBudgetUsesDaysInMonth() {
-        assertEquals(60_000L, monthlyBudget(2_000, YearMonth.of(2026, 11)))
-        assertEquals(62_000L, monthlyBudget(2_000, YearMonth.of(2026, 12)))
-        assertEquals(56_000L, monthlyBudget(2_000, YearMonth.of(2026, 2)))
-        assertEquals(58_000L, monthlyBudget(2_000, YearMonth.of(2028, 2)))
+        fun p(y: Int, m: Int) = Period.of(LocalDate.of(y, m, 1), 1)
+        assertEquals(60_000L, monthlyBudget(2_000, p(2026, 11)))
+        assertEquals(62_000L, monthlyBudget(2_000, p(2026, 12)))
+        assertEquals(56_000L, monthlyBudget(2_000, p(2026, 2)))
+        assertEquals(58_000L, monthlyBudget(2_000, p(2028, 2)))
+        // 25日始まり: 1/25〜2/24 は31日
+        assertEquals(62_000L, monthlyBudget(2_000, Period.of(LocalDate.of(2026, 2, 1), 25)))
     }
 
     @Test
