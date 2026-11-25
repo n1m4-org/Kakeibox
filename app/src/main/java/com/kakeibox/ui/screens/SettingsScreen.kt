@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Weekend
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.Savings
@@ -25,6 +27,7 @@ import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.components.ChoiceDialog
 import com.kakeibox.ui.components.SettingsItem
 import com.kakeibox.ui.components.SettingsSection
+import com.kakeibox.ui.components.SettingsSwitch
 
 /** 設定画面から開く画面 */
 class SettingsNavigation(
@@ -39,7 +42,7 @@ fun SettingsScreen(vm: MainViewModel, contentPadding: PaddingValues, navigation:
     SettingsContent(settings, contentPadding, navigation, onUpdate = vm::updateSettings)
 }
 
-private enum class SettingsDialog { THEME, PERIOD_START, PAYMENT }
+private enum class SettingsDialog { THEME, PERIOD_START, PAYMENT, PAYDAY }
 
 @Composable
 internal fun SettingsContent(
@@ -78,6 +81,22 @@ internal fun SettingsContent(
             ) { dialog = SettingsDialog.PERIOD_START }
         }
 
+        item {
+            SettingsItem("給料日", Icons.Outlined.Payments, paydayLabel(settings.payday) + if (settings.payday != 0) "（明細にカウントダウンを表示）" else "") {
+                dialog = SettingsDialog.PAYDAY
+            }
+        }
+        if (settings.payday != 0) {
+            item {
+                SettingsSwitch(
+                    "土日の場合は前の金曜日",
+                    Icons.Outlined.Weekend,
+                    settings.paydayShiftWeekend,
+                    onCheckedChange = { v -> onUpdate { it.copy(paydayShiftWeekend = v) } },
+                )
+            }
+        }
+
         item { SettingsSection("表示") }
         item {
             SettingsItem("テーマ", Icons.Outlined.DarkMode, settings.theme.label) { dialog = SettingsDialog.THEME }
@@ -109,6 +128,14 @@ internal fun SettingsContent(
             onDismiss = { dialog = null },
             onSelect = { p -> onUpdate { it.copy(defaultPayment = p) }; dialog = null },
         )
+        SettingsDialog.PAYDAY -> ChoiceDialog(
+            title = "給料日",
+            options = (0..31).toList(),
+            selected = settings.payday,
+            label = ::paydayLabel,
+            onDismiss = { dialog = null },
+            onSelect = { d -> onUpdate { it.copy(payday = d) }; dialog = null },
+        )
         null -> Unit
     }
 }
@@ -116,3 +143,9 @@ internal fun SettingsContent(
 /** 「毎月1日（カレンダーどおり）」「毎月25日〜翌月24日」 */
 internal fun periodStartLabel(day: Int): String =
     if (day == 1) "毎月1日（カレンダーどおり）" else "毎月${day}日〜翌月${day - 1}日"
+
+internal fun paydayLabel(day: Int): String = when (day) {
+    0 -> "設定しない"
+    31 -> "毎月末"
+    else -> "毎月${day}日"
+}

@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -41,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kakeibox.data.BudgetKind
 import com.kakeibox.data.BudgetTarget
+import com.kakeibox.data.PaydayStatus
 import com.kakeibox.data.PlainBudgetStatus
 import com.kakeibox.data.TargetStatus
 import com.kakeibox.data.MonthSummary
@@ -77,6 +80,7 @@ fun HomeScreen(
     val todayStatuses by vm.todayStatuses.collectAsStateWithLifecycle()
     val weeklyStatuses by vm.weeklyStatuses.collectAsStateWithLifecycle()
     val monthlyStatuses by vm.monthlyStatuses.collectAsStateWithLifecycle()
+    val payday by vm.paydayStatus.collectAsStateWithLifecycle()
 
     val grouped = remember(list) { list.groupBy { it.date } }
 
@@ -96,6 +100,7 @@ fun HomeScreen(
             }
         }
         if (period == currentPeriod) {
+            payday?.let { p -> item { PaydayCard(p) } }
             item { TodayCard(todayStatuses, period) { onOpenBudgets(BudgetKind.DAILY) } }
             if (weeklyStatuses.isNotEmpty()) {
                 item { PlainBudgetsCard("今週の予算（月〜日）", weeklyStatuses) { onOpenBudgets(BudgetKind.WEEKLY) } }
@@ -130,6 +135,44 @@ fun HomeScreen(
             items(txs, key = { it.id }) { tx ->
                 TransactionRow(tx, onClick = { onEdit(tx.id) })
                 HorizontalDivider()
+            }
+        }
+    }
+}
+
+/** 給料日までのカウントダウン */
+@Composable
+internal fun PaydayCard(status: PaydayStatus) {
+    Card(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(Icons.Outlined.Payments, null)
+            Column(Modifier.weight(1f)) {
+                if (status.daysLeft == 0) {
+                    Text("今日は給料日です", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                } else {
+                    Text(
+                        "給料日まであと${status.daysLeft}日",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(status.payday.dayLabel(), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            val perDay = status.perDay
+            if (perDay != null && status.daysLeft > 0) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("1日あたり", style = MaterialTheme.typography.labelSmall)
+                    Text(
+                        signedYen(perDay),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (perDay < 0) ExpenseColor else MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                    Text("${status.basis} ${signedYen(status.remaining ?: 0)}", style = MaterialTheme.typography.labelSmall)
+                }
             }
         }
     }

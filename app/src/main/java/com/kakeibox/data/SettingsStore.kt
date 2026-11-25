@@ -20,6 +20,10 @@ data class AppSettings(
     val periodStartDay: Int = 1,
     /** クイック入力などで使う既定の支払い方法 */
     val defaultPayment: PaymentMethod = PaymentMethod.CASH,
+    /** 給料日（0=表示しない、31=月末） */
+    val payday: Int = 0,
+    /** 給料日が土日なら直前の金曜にする */
+    val paydayShiftWeekend: Boolean = true,
 )
 
 /** 設定の保存（SharedPreferences）と購読 */
@@ -43,6 +47,8 @@ class SettingsStore(context: Context) {
             .putString(KEY_THEME, s.theme.name)
             .putInt(KEY_PERIOD_START, s.periodStartDay)
             .putString(KEY_DEFAULT_PAYMENT, s.defaultPayment.name)
+            .putInt(KEY_PAYDAY, s.payday)
+            .putBoolean(KEY_PAYDAY_SHIFT, s.paydayShiftWeekend)
             .apply()
     }
 
@@ -50,11 +56,15 @@ class SettingsStore(context: Context) {
         const val KEY_THEME = "theme"
         const val KEY_PERIOD_START = "period_start_day"
         const val KEY_DEFAULT_PAYMENT = "default_payment"
+        const val KEY_PAYDAY = "payday"
+        const val KEY_PAYDAY_SHIFT = "payday_shift_weekend"
 
         fun load(p: SharedPreferences) = AppSettings(
             theme = p.getString(KEY_THEME, null)?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
             periodStartDay = p.getInt(KEY_PERIOD_START, 1).coerceIn(1, Period.MAX_START_DAY),
             defaultPayment = PaymentMethod.fromName(p.getString(KEY_DEFAULT_PAYMENT, null)),
+            payday = p.getInt(KEY_PAYDAY, 0).coerceIn(0, 31),
+            paydayShiftWeekend = p.getBoolean(KEY_PAYDAY_SHIFT, true),
         )
     }
 }

@@ -17,7 +17,9 @@ import com.kakeibox.data.computeTodayStatuses
 import kotlinx.coroutines.flow.combine
 import com.kakeibox.data.MonthSummary
 import com.kakeibox.data.PaymentMethod
+import com.kakeibox.data.PaydayStatus
 import com.kakeibox.data.Period
+import com.kakeibox.data.paydayStatus
 import com.kakeibox.data.PeriodTotal
 import com.kakeibox.data.YearReport
 import com.kakeibox.data.periodTotals
@@ -98,6 +100,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 computeTodayStatuses(settings, spent, LocalDate.now(), p.start)
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** 給料日までの状況（今の期間の集計を使う。給料日未設定は null） */
+    val paydayStatus: StateFlow<PaydayStatus?> = currentPeriod
+        .flatMapLatest { p -> repo.observePeriod(p).map { MonthSummary.from(it) } }
+        .let { current ->
+            combine(current, settingsStore.settings, budgetStore.monthly) { summary, s, monthly ->
+                if (s.payday == 0) null
+                else paydayStatus(LocalDate.now(), s.payday, s.paydayShiftWeekend, monthly[BudgetTarget.All], summary)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** 前の期間の集計（前月比） */
     val previousSummary: StateFlow<MonthSummary> = period
