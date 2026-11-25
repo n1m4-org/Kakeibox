@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.PieChart
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -45,6 +46,8 @@ import com.kakeibox.ui.screens.DailyBudgetScreen
 import com.kakeibox.ui.screens.EditScreen
 import com.kakeibox.ui.screens.HomeScreen
 import com.kakeibox.ui.screens.ReportScreen
+import com.kakeibox.ui.screens.SettingsNavigation
+import com.kakeibox.ui.screens.SettingsScreen
 import com.kakeibox.ui.theme.KakeiboxTheme
 import com.kakeibox.ui.yen
 import kotlinx.coroutines.launch
@@ -74,6 +77,7 @@ class MainActivity : ComponentActivity() {
 internal object Routes {
     const val HOME = "home"
     const val REPORT = "report"
+    const val SETTINGS = "settings"
     const val BUDGETS = "budgets"
     const val EDIT = "edit?id={id}"
     fun edit(id: Long? = null) = if (id == null) "edit" else "edit?id=$id"
@@ -118,6 +122,7 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
                         listOf(
                             Triple(Routes.HOME, "明細", Icons.AutoMirrored.Outlined.ReceiptLong),
                             Triple(Routes.REPORT, "レポート", Icons.Outlined.PieChart),
+                            Triple(Routes.SETTINGS, "設定", Icons.Outlined.Settings),
                         ).forEach { (r, label, icon) ->
                             NavigationBarItem(
                                 selected = tab == r,
@@ -150,6 +155,11 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
                         )
                     }
                     composable(Routes.REPORT) { ReportScreen(vm, padding) }
+                    composable(Routes.SETTINGS) {
+                        SettingsScreen(vm, padding, SettingsNavigation(
+                            openBudgets = { nav.navigate(Routes.BUDGETS) },
+                        ))
+                    }
                 }
             }
 

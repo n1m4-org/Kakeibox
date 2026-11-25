@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.glance.appwidget.updateAll
 import com.kakeibox.data.AppDatabase
 import com.kakeibox.data.BudgetStore
+import com.kakeibox.data.SettingsStore
 import com.kakeibox.data.TransactionRepository
 import com.kakeibox.widget.DailyBudgetWidget
 import com.kakeibox.widget.KakeiboxWidget
@@ -12,6 +13,7 @@ import com.kakeibox.widget.KakeiboxWidget
 object AppGraph {
     @Volatile private var repo: TransactionRepository? = null
     @Volatile private var budget: BudgetStore? = null
+    @Volatile private var settings: SettingsStore? = null
 
     fun repository(context: Context): TransactionRepository =
         repo ?: synchronized(this) {
@@ -27,6 +29,11 @@ object AppGraph {
     fun budgetStore(context: Context): BudgetStore =
         budget ?: synchronized(this) {
             budget ?: BudgetStore(context.applicationContext).also { budget = it }
+        }
+
+    fun settingsStore(context: Context): SettingsStore =
+        settings ?: synchronized(this) {
+            settings ?: SettingsStore(context.applicationContext).also { settings = it }
         }
 
     /** すべてのホーム画面ウィジェットを再描画する */

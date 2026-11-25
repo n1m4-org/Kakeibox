@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.kakeibox.AppGraph
 import com.kakeibox.data.Category
 import com.kakeibox.data.DailyBudgetSetting
+import com.kakeibox.data.AppSettings
 import com.kakeibox.data.BudgetTarget
 import com.kakeibox.data.TargetStatus
 import com.kakeibox.data.computeTodayStatuses
@@ -32,6 +33,10 @@ import java.time.YearMonth
 class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = AppGraph.repository(app)
     private val budgetStore = AppGraph.budgetStore(app)
+    private val settingsStore = AppGraph.settingsStore(app)
+
+    val settings: StateFlow<AppSettings> = settingsStore.settings
+    fun updateSettings(transform: (AppSettings) -> AppSettings) = settingsStore.update(transform)
 
     private val _month = MutableStateFlow(YearMonth.now())
     val month: StateFlow<YearMonth> = _month.asStateFlow()
