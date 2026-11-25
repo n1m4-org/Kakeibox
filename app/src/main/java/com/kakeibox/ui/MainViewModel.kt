@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.combine
 import com.kakeibox.data.MonthSummary
 import com.kakeibox.data.PaymentMethod
 import com.kakeibox.data.Period
+import com.kakeibox.data.Template
 import com.kakeibox.data.quickExpense
 import com.kakeibox.data.Transaction
 import com.kakeibox.data.TxType
@@ -94,6 +95,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun refreshWidgets() = viewModelScope.launch { AppGraph.refreshWidgets(getApplication()) }
 
     /** 今日の支出として保存する */
+    private val templateDao = AppGraph.templateDao(app)
+    val templates: StateFlow<List<Template>> = templateDao.observeAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun saveTemplate(t: Template) = viewModelScope.launch { templateDao.upsert(t) }
+    fun deleteTemplate(t: Template) = viewModelScope.launch { templateDao.delete(t) }
+
+    /** テンプレートで今日の記録をつける */
+    fun addFromTemplate(t: Template, enteredAmount: Long) = viewModelScope.launch {
+        addAndNotify(t.toTransaction(enteredAmount = enteredAmount))
+    }
+
     fun quickAdd(amount: Long, category: Category, payment: PaymentMethod) = viewModelScope.launch {
         addAndNotify(quickExpense(amount, category, payment))
     }

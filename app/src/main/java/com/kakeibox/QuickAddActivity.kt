@@ -9,7 +9,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.lifecycle.lifecycleScope
+import com.kakeibox.data.Transaction
 import com.kakeibox.data.quickExpense
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kakeibox.ui.quickadd.QuickAddContent
 import com.kakeibox.ui.theme.KakeiboxTheme
 import com.kakeibox.ui.yen
@@ -24,7 +27,24 @@ class QuickAddActivity : ComponentActivity() {
         val repo = AppGraph.repository(this)
         var saving = false
 
+        val templateDao = AppGraph.templateDao(this)
+
+        fun saveAndFinish(tx: Transaction) {
+            if (saving) return
+            saving = true
+            lifecycleScope.launch {
+                repo.save(tx)
+                Toast.makeText(
+                    applicationContext,
+                    "${tx.categoryEnum.label} ${yen(tx.amount)} を記録しました",
+                    Toast.LENGTH_SHORT,
+                ).show()
+                finish()
+            }
+        }
+
         setContent {
+            val templates by templateDao.observeAll().collectAsStateWithLifecycle(emptyList())
             KakeiboxTheme {
                 ModalBottomSheet(
                     onDismissRequest = { finish() },
@@ -32,20 +52,9 @@ class QuickAddActivity : ComponentActivity() {
                 ) {
                     QuickAddContent(
                         defaultPayment = AppGraph.settingsStore(this@QuickAddActivity).settings.value.defaultPayment,
-                        onSave = { amount, category, payment ->
-                            if (!saving) {
-                                saving = true
-                                lifecycleScope.launch {
-                                    repo.save(quickExpense(amount, category, payment))
-                                    Toast.makeText(
-                                        applicationContext,
-                                        "${category.label} ${yen(amount)} を記録しました",
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                                    finish()
-                                }
-                            }
-                        },
+                        onSave = { amount, category, payment -> saveAndFinish(quickExpense(amount, category, payment)) },
+                        templates = templates,
+                        onTemplate = { t, entered -> saveAndFinish(t.toTransaction(enteredAmount = entered)) },
                         onDetail = {
                             startActivity(MainActivity.openEditIntent(this@QuickAddActivity))
                             finish()

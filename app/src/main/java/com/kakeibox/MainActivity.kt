@@ -49,6 +49,7 @@ import com.kakeibox.ui.screens.HomeScreen
 import com.kakeibox.ui.screens.ReportScreen
 import com.kakeibox.ui.screens.SettingsNavigation
 import com.kakeibox.ui.screens.SettingsScreen
+import com.kakeibox.ui.screens.TemplatesScreen
 import com.kakeibox.ui.theme.KakeiboxTheme
 import com.kakeibox.ui.yen
 import kotlinx.coroutines.launch
@@ -80,6 +81,7 @@ internal object Routes {
     const val REPORT = "report"
     const val SETTINGS = "settings"
     const val BUDGETS = "budgets"
+    const val TEMPLATES = "templates"
     const val EDIT = "edit?id={id}"
     fun edit(id: Long? = null) = if (id == null) "edit" else "edit?id=$id"
 }
@@ -159,6 +161,7 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
                     composable(Routes.SETTINGS) {
                         SettingsScreen(vm, padding, SettingsNavigation(
                             openBudgets = { nav.navigate(Routes.BUDGETS) },
+                            openTemplates = { nav.navigate(Routes.TEMPLATES) },
                         ))
                     }
                 }
@@ -173,10 +176,16 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
                 }
                 ModalBottomSheet(onDismissRequest = { showQuickAdd = false }, sheetState = sheetState) {
                     val appSettings by vm.settings.collectAsStateWithLifecycle()
+                    val templates by vm.templates.collectAsStateWithLifecycle()
                     QuickAddContent(
                         defaultPayment = appSettings.defaultPayment,
                         onSave = { amount, category, payment ->
                             vm.quickAdd(amount, category, payment)
+                            close()
+                        },
+                        templates = templates,
+                        onTemplate = { t, entered ->
+                            vm.addFromTemplate(t, entered)
                             close()
                         },
                         onDetail = { close { nav.navigate(Routes.edit()) } },
@@ -190,6 +199,9 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
         ) { entry ->
             val id = entry.arguments?.getLong("id")?.takeIf { it >= 0 }
             EditScreen(vm, id, onDone = { nav.popBackStack() })
+        }
+        composable(Routes.TEMPLATES) {
+            TemplatesScreen(vm, onBack = { nav.popBackStack() }, onCreate = { nav.navigate(Routes.edit()) })
         }
         composable(Routes.BUDGETS) {
             DailyBudgetScreen(vm, onBack = { nav.popBackStack() })

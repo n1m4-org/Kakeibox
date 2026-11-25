@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -27,6 +28,8 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,6 +52,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.kakeibox.data.Category
 import com.kakeibox.data.PaymentMethod
+import com.kakeibox.data.Template
+import androidx.compose.ui.graphics.Color
 import com.kakeibox.ui.icon
 import com.kakeibox.data.TxType
 import com.kakeibox.ui.components.CategoryBadge
@@ -67,6 +72,9 @@ fun QuickAddContent(
     onSave: (amount: Long, category: Category, payment: PaymentMethod) -> Unit,
     onDetail: () -> Unit,
     modifier: Modifier = Modifier,
+    templates: List<Template> = emptyList(),
+    /** テンプレートのタップ。金額未設定のテンプレートにはキーパッドの金額を渡す */
+    onTemplate: (template: Template, enteredAmount: Long) -> Unit = { _, _ -> },
 ) {
     var amount by rememberSaveable { mutableStateOf("") }
     var payment by rememberSaveable(defaultPayment) { mutableStateOf(defaultPayment) }
@@ -104,20 +112,46 @@ fun QuickAddContent(
             color = if (error) ExpenseColor else MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
+        fun requireAmount(): Long? {
+            val value = amount.toLongOrNull() ?: 0
+            if (value > 0) return value
+            error = true
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            scope.launch {
+                shake.snapTo(32f)
+                shake.animateTo(0f, spring(dampingRatio = 0.2f, stiffness = 1200f))
+            }
+            return null
+        }
+
+        // テンプレート（タップで即保存）
+        if (templates.isNotEmpty()) {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                templates.forEach { t ->
+                    SuggestionChip(
+                        onClick = {
+                            if (t.amount > 0) {
+                                onTemplate(t, 0)
+                            } else {
+                                requireAmount()?.let { onTemplate(t, it); amount = "" }
+                            }
+                        },
+                        icon = { Icon(t.categoryEnum.icon, null, Modifier.size(SuggestionChipDefaults.IconSize), tint = Color(t.categoryEnum.color)) },
+                        label = { Text(if (t.amount > 0) "${t.name} ${yen(t.amount)}" else t.name) },
+                    )
+                }
+            }
+        }
+
         // カテゴリ（タップで即保存）
         Category.of(TxType.EXPENSE).chunked(4).forEach { row ->
             Row(Modifier.fillMaxWidth()) {
                 row.forEach { c ->
                     CategoryCell(c, Modifier.weight(1f)) {
-                        val value = amount.toLongOrNull() ?: 0
-                        if (value <= 0) {
-                            error = true
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            scope.launch {
-                                shake.snapTo(32f)
-                                shake.animateTo(0f, spring(dampingRatio = 0.2f, stiffness = 1200f))
-                            }
-                        } else {
+                        requireAmount()?.let { value ->
                             onSave(value, c, payment)
                             amount = ""
                         }

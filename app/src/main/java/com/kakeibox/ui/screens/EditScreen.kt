@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.foundation.layout.size
@@ -32,12 +33,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -47,6 +53,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kakeibox.data.Category
 import com.kakeibox.data.PaymentMethod
+import com.kakeibox.data.Template
 import com.kakeibox.data.Transaction
 import com.kakeibox.data.TxType
 import com.kakeibox.ui.MainViewModel
@@ -71,6 +78,9 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var amountError by rememberSaveable { mutableStateOf(false) }
+    var showTemplateDialog by rememberSaveable { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(txId) {
         if (txId != null && !loaded) {
@@ -98,6 +108,7 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
     )
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text(if (txId == null) "記録を追加" else "記録を編集") },
@@ -105,6 +116,9 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
                     IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") }
                 },
                 actions = {
+                    IconButton(onClick = { showTemplateDialog = true }) {
+                        Icon(Icons.Outlined.BookmarkAdd, "テンプレートとして保存")
+                    }
                     if (original != null) {
                         IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Outlined.Delete, "削除") }
                     }
@@ -209,6 +223,20 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
             },
             dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("キャンセル") } },
         ) { DatePicker(state) }
+    }
+
+    if (showTemplateDialog) {
+        TemplateDialog(
+            initialName = memo.trim().ifBlank { category.label },
+            initialAmount = amountText.toLongOrNull() ?: 0L,
+            title = "テンプレートとして保存",
+            onDismiss = { showTemplateDialog = false },
+            onSave = { name, amount ->
+                vm.saveTemplate(Template.from(buildTx(), name).copy(amount = amount))
+                showTemplateDialog = false
+                scope.launch { snackbar.showSnackbar("テンプレート「$name」を保存しました") }
+            },
+        )
     }
 
     if (confirmDelete) {

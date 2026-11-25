@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.Savings
@@ -27,6 +28,7 @@ import com.kakeibox.ui.components.SettingsSection
 /** 設定画面から開く画面 */
 class SettingsNavigation(
     val openBudgets: () -> Unit,
+    val openTemplates: () -> Unit,
 )
 
 @Composable
@@ -57,6 +59,9 @@ internal fun SettingsContent(
             SettingsItem("既定の支払い方法", settings.defaultPayment.icon, "クイック入力・新規入力で最初に選ばれる方法：${settings.defaultPayment.label}") {
                 dialog = SettingsDialog.PAYMENT
             }
+        }
+        item {
+            SettingsItem("テンプレート", Icons.Outlined.Bookmarks, "よく使う記録をワンタップで", onClick = navigation.openTemplates)
         }
 
         item { SettingsSection("期間") }

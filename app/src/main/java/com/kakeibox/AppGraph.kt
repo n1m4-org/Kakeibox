@@ -5,6 +5,7 @@ import androidx.glance.appwidget.updateAll
 import com.kakeibox.data.AppDatabase
 import com.kakeibox.data.BudgetStore
 import com.kakeibox.data.SettingsStore
+import com.kakeibox.data.TemplateDao
 import com.kakeibox.data.TransactionRepository
 import com.kakeibox.widget.DailyBudgetWidget
 import com.kakeibox.widget.KakeiboxWidget
@@ -25,6 +26,8 @@ object AppGraph {
                 )
             }.also { repo = it }
         }
+
+    fun templateDao(context: Context): TemplateDao = AppDatabase.get(context.applicationContext).templateDao()
 
     fun budgetStore(context: Context): BudgetStore =
         budget ?: synchronized(this) {
