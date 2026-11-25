@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.glance.appwidget.updateAll
 import com.kakeibox.data.AppDatabase
 import com.kakeibox.data.BudgetStore
+import com.kakeibox.data.RecurringDao
 import com.kakeibox.data.SettingsStore
 import com.kakeibox.data.TemplateDao
 import com.kakeibox.data.TransactionRepository
@@ -28,6 +29,8 @@ object AppGraph {
         }
 
     fun templateDao(context: Context): TemplateDao = AppDatabase.get(context.applicationContext).templateDao()
+
+    fun recurringDao(context: Context): RecurringDao = AppDatabase.get(context.applicationContext).recurringDao()
 
     fun budgetStore(context: Context): BudgetStore =
         budget ?: synchronized(this) {

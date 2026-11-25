@@ -16,18 +16,20 @@ class Converters {
 }
 
 @Database(
-    entities = [Transaction::class, Template::class],
-    version = 3,
+    entities = [Transaction::class, Template::class, Recurring::class],
+    version = 4,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2), // 支払い方法の列を追加
         AutoMigration(from = 2, to = 3), // テンプレートのテーブルを追加
+        AutoMigration(from = 3, to = 4), // 定期の収支のテーブルを追加
     ],
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun templateDao(): TemplateDao
+    abstract fun recurringDao(): RecurringDao
 
     companion object {
         @Volatile private var instance: AppDatabase? = null

@@ -57,6 +57,8 @@ import com.kakeibox.data.Template
 import com.kakeibox.data.Transaction
 import com.kakeibox.data.TxType
 import com.kakeibox.ui.MainViewModel
+import com.kakeibox.ui.components.CategoryChips
+import com.kakeibox.ui.components.PaymentChips
 import com.kakeibox.ui.fullLabel
 import java.time.Instant
 import java.time.LocalDate
@@ -155,31 +157,9 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Text("カテゴリ", style = MaterialTheme.typography.labelLarge)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Category.of(type).forEach { c ->
-                    FilterChip(
-                        selected = c == category,
-                        onClick = { category = c },
-                        label = { Text(c.label) },
-                        leadingIcon = {
-                            Icon(c.icon, null, tint = Color(c.color), modifier = Modifier.size(FilterChipDefaults.IconSize))
-                        },
-                    )
-                }
-            }
+            CategoryChips(type, category, onSelect = { category = it })
 
-            Text(if (type == TxType.EXPENSE) "支払い方法" else "受け取り方法", style = MaterialTheme.typography.labelLarge)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PaymentMethod.entries.forEach { p ->
-                    FilterChip(
-                        selected = p == payment,
-                        onClick = { payment = p },
-                        label = { Text(p.label) },
-                        leadingIcon = { Icon(p.icon, null, modifier = Modifier.size(FilterChipDefaults.IconSize)) },
-                    )
-                }
-            }
+            PaymentChips(type, payment, onSelect = { payment = it })
 
             OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Outlined.CalendarMonth, null)

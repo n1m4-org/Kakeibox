@@ -41,6 +41,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.lifecycle.lifecycleScope
+import com.kakeibox.data.RecurringRunner
 import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.quickadd.QuickAddContent
 import com.kakeibox.ui.screens.DailyBudgetScreen
@@ -48,6 +50,8 @@ import com.kakeibox.ui.screens.EditScreen
 import com.kakeibox.ui.screens.HomeScreen
 import com.kakeibox.ui.screens.ReportScreen
 import com.kakeibox.ui.screens.SettingsNavigation
+import com.kakeibox.ui.screens.RecurringEditScreen
+import com.kakeibox.ui.screens.RecurringScreen
 import com.kakeibox.ui.screens.SettingsScreen
 import com.kakeibox.ui.screens.TemplatesScreen
 import com.kakeibox.ui.theme.KakeiboxTheme
@@ -61,6 +65,12 @@ class MainActivity : ComponentActivity() {
         // ウィジェットから特定の画面（入力・予算設定）を指定して起動された場合はその画面から始める
         val startRoute = if (savedInstanceState == null) intent.getStringExtra(EXTRA_START_ROUTE) else null
         setContent { KakeiboxTheme { KakeiboxApp(startRoute = startRoute) } }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 記録日が来た定期の収支を登録（WorkManagerの実行待ちを補う）
+        lifecycleScope.launch { RecurringRunner.run(applicationContext) }
     }
 
     companion object {
@@ -82,6 +92,9 @@ internal object Routes {
     const val SETTINGS = "settings"
     const val BUDGETS = "budgets"
     const val TEMPLATES = "templates"
+    const val RECURRING = "recurring"
+    const val RECURRING_EDIT = "recurring/edit?id={id}"
+    fun recurringEdit(id: Long?) = if (id == null) "recurring/edit" else "recurring/edit?id=$id"
     const val EDIT = "edit?id={id}"
     fun edit(id: Long? = null) = if (id == null) "edit" else "edit?id=$id"
 }
@@ -162,6 +175,7 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
                         SettingsScreen(vm, padding, SettingsNavigation(
                             openBudgets = { nav.navigate(Routes.BUDGETS) },
                             openTemplates = { nav.navigate(Routes.TEMPLATES) },
+                            openRecurring = { nav.navigate(Routes.RECURRING) },
                         ))
                     }
                 }
@@ -202,6 +216,16 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
         }
         composable(Routes.TEMPLATES) {
             TemplatesScreen(vm, onBack = { nav.popBackStack() }, onCreate = { nav.navigate(Routes.edit()) })
+        }
+        composable(Routes.RECURRING) {
+            RecurringScreen(vm, onBack = { nav.popBackStack() }, onEdit = { nav.navigate(Routes.recurringEdit(it)) })
+        }
+        composable(
+            Routes.RECURRING_EDIT,
+            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
+        ) { entry ->
+            val id = entry.arguments?.getLong("id")?.takeIf { it >= 0 }
+            RecurringEditScreen(vm, id, onDone = { nav.popBackStack() })
         }
         composable(Routes.BUDGETS) {
             DailyBudgetScreen(vm, onBack = { nav.popBackStack() })

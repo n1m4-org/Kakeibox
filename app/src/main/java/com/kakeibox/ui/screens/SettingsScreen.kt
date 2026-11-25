@@ -29,6 +29,7 @@ import com.kakeibox.ui.components.SettingsSection
 class SettingsNavigation(
     val openBudgets: () -> Unit,
     val openTemplates: () -> Unit,
+    val openRecurring: () -> Unit,
 )
 
 @Composable
@@ -62,6 +63,9 @@ internal fun SettingsContent(
         }
         item {
             SettingsItem("テンプレート", Icons.Outlined.Bookmarks, "よく使う記録をワンタップで", onClick = navigation.openTemplates)
+        }
+        item {
+            SettingsItem("定期の収支", Icons.Outlined.EventRepeat, "家賃・サブスク・給料などを毎月自動で記録", onClick = navigation.openRecurring)
         }
 
         item { SettingsSection("期間") }

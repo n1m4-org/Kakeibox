@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.combine
 import com.kakeibox.data.MonthSummary
 import com.kakeibox.data.PaymentMethod
 import com.kakeibox.data.Period
+import com.kakeibox.data.Recurring
+import com.kakeibox.data.RecurringRunner
 import com.kakeibox.data.Template
 import com.kakeibox.data.quickExpense
 import com.kakeibox.data.Transaction
@@ -101,6 +103,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun saveTemplate(t: Template) = viewModelScope.launch { templateDao.upsert(t) }
     fun deleteTemplate(t: Template) = viewModelScope.launch { templateDao.delete(t) }
+
+    private val recurringDao = AppGraph.recurringDao(app)
+    val recurring: StateFlow<List<Recurring>> = recurringDao.observeAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    suspend fun findRecurring(id: Long): Recurring? = recurringDao.find(id)
+
+    /** 保存して、今日が記録日なら即登録する */
+    fun saveRecurring(r: Recurring) = viewModelScope.launch {
+        recurringDao.upsert(r)
+        RecurringRunner.run(getApplication())
+    }
+
+    fun deleteRecurringById(id: Long) = viewModelScope.launch { recurringDao.find(id)?.let { recurringDao.delete(it) } }
 
     /** テンプレートで今日の記録をつける */
     fun addFromTemplate(t: Template, enteredAmount: Long) = viewModelScope.launch {
