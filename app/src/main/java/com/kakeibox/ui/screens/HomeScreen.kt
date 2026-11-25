@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -47,6 +47,7 @@ import com.kakeibox.data.MonthSummary
 import com.kakeibox.data.Transaction
 import com.kakeibox.data.TxType
 import com.kakeibox.ui.MainViewModel
+import com.kakeibox.ui.components.CategoryBadge
 import com.kakeibox.ui.components.MonthSelector
 import com.kakeibox.ui.dayLabel
 import com.kakeibox.ui.signedYen
@@ -132,7 +133,7 @@ private fun SummaryCard(summary: MonthSummary, budget: Long, onEditBudget: () ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("月の予算", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                 Text(if (budget > 0) yen(budget) else "未設定", style = MaterialTheme.typography.bodyMedium)
-                IconButton(onClick = onEditBudget) { Icon(Icons.Default.Edit, "予算を設定") }
+                IconButton(onClick = onEditBudget) { Icon(Icons.Outlined.Edit,"予算を設定") }
             }
             if (budget > 0) {
                 val ratio = summary.expense.toFloat() / budget
@@ -174,10 +175,7 @@ private fun TransactionRow(tx: Transaction, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            Modifier.size(40.dp).background(Color(cat.color).copy(alpha = 0.2f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) { Text(cat.emoji) }
+        CategoryBadge(cat)
         Column(Modifier.weight(1f)) {
             Text(cat.label, style = MaterialTheme.typography.bodyLarge)
             if (tx.memo.isNotBlank()) {

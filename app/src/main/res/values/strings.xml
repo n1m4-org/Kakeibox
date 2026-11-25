@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Kakeibox</string>
+    <string name="widget_name">支出クイック入力</string>
+    <string name="widget_description">今月の支出を表示し、ワンタップで支出を追加できます</string>
 </resources>

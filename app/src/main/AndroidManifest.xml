@@ -16,5 +16,26 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- ウィジェットから開くクイック入力 -->
+        <activity
+            android:name=".QuickAddActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Kakeibox.Translucent"
+            android:windowSoftInputMode="adjustResize" />
+
+        <receiver
+            android:name=".widget.KakeiboxWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kakeibox_widget_info" />
+        </receiver>
     </application>
 </manifest>

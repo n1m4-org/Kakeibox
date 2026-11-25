@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kakeibox.data.TxType
 import com.kakeibox.ui.MainViewModel
+import com.kakeibox.ui.components.CategoryBadge
 import com.kakeibox.ui.components.DonutChart
 import com.kakeibox.ui.components.MonthSelector
 import com.kakeibox.ui.yen
@@ -66,8 +67,9 @@ fun ReportScreen(vm: MainViewModel, contentPadding: PaddingValues) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Box(Modifier.size(14.dp).background(Color(ct.category.color), CircleShape))
-                Text("${ct.category.emoji} ${ct.category.label}", Modifier.weight(1f))
+                Box(Modifier.size(6.dp, 28.dp).background(Color(ct.category.color), CircleShape))
+                CategoryBadge(ct.category, size = 32.dp)
+                Text(ct.category.label, Modifier.weight(1f))
                 Text("%.1f%%".format(ct.ratio * 100), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(yen(ct.total), style = MaterialTheme.typography.titleSmall)
             }

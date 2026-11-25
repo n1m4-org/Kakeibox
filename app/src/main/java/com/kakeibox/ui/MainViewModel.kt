@@ -3,25 +3,30 @@ package com.kakeibox.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.kakeibox.data.AppDatabase
+import com.kakeibox.AppGraph
 import com.kakeibox.data.BudgetStore
+import com.kakeibox.data.Category
 import com.kakeibox.data.MonthSummary
 import com.kakeibox.data.Transaction
-import com.kakeibox.data.TransactionRepository
+import com.kakeibox.data.TxType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.YearMonth
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(app: Application) : AndroidViewModel(app) {
-    private val repo = TransactionRepository(AppDatabase.get(app).transactionDao())
+    private val repo = AppGraph.repository(app)
     private val budgetStore = BudgetStore(app)
 
     private val _month = MutableStateFlow(YearMonth.now())
@@ -37,6 +42,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     val budget: StateFlow<Long> = budgetStore.budget
 
+    /** クイック入力で保存した記録（取り消し用のSnackbar表示に使う） */
+    private val _quickAdded = MutableSharedFlow<Transaction>(extraBufferCapacity = 1)
+    val quickAdded: SharedFlow<Transaction> = _quickAdded.asSharedFlow()
+
     fun prevMonth() { _month.value = _month.value.minusMonths(1) }
     fun nextMonth() { _month.value = _month.value.plusMonths(1) }
     fun thisMonth() { _month.value = YearMonth.now() }
@@ -46,4 +55,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun save(tx: Transaction) = viewModelScope.launch { repo.save(tx) }
     fun delete(tx: Transaction) = viewModelScope.launch { repo.delete(tx) }
     fun setBudget(value: Long) = budgetStore.set(value)
+
+    /** 今日の支出として保存する */
+    fun quickAdd(amount: Long, category: Category) = viewModelScope.launch {
+        val tx = Transaction(
+            type = TxType.EXPENSE,
+            category = category.name,
+            amount = amount,
+            date = LocalDate.now().toEpochDay(),
+        )
+        val id = repo.save(tx)
+        _quickAdded.emit(tx.copy(id = id))
+    }
 }

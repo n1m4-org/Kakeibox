@@ -14,8 +14,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.ui.graphics.Color
+import com.kakeibox.ui.icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -98,7 +102,7 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
                 },
                 actions = {
                     if (original != null) {
-                        IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Default.Delete, "削除") }
+                        IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Outlined.Delete, "削除") }
                     }
                 },
             )
@@ -139,13 +143,16 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
                     FilterChip(
                         selected = c == category,
                         onClick = { category = c },
-                        label = { Text("${c.emoji} ${c.label}") },
+                        label = { Text(c.label) },
+                        leadingIcon = {
+                            Icon(c.icon, null, tint = Color(c.color), modifier = Modifier.size(FilterChipDefaults.IconSize))
+                        },
                     )
                 }
             }
 
             OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Default.CalendarMonth, null)
+                Icon(Icons.Outlined.CalendarMonth, null)
                 Text("  " + LocalDate.ofEpochDay(epochDay).fullLabel())
             }
 

@@ -12,6 +12,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE date BETWEEN :startDay AND :endDay ORDER BY date DESC, id DESC")
     fun observeBetween(startDay: Long, endDay: Long): Flow<List<Transaction>>
 
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'EXPENSE' AND date BETWEEN :startDay AND :endDay")
+    suspend fun sumExpenseBetween(startDay: Long, endDay: Long): Long
+
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun findById(id: Long): Transaction?
 
