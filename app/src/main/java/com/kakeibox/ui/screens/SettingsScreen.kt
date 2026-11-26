@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material.icons.outlined.Lock
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
@@ -63,6 +64,7 @@ class SettingsNavigation(
     val openBudgets: () -> Unit,
     val openTemplates: () -> Unit,
     val openRecurring: () -> Unit,
+    val openAppearance: () -> Unit = {},
 )
 
 @Composable
@@ -230,6 +232,14 @@ internal fun SettingsContent(
         }
 
         item { SettingsSection("表示") }
+        item {
+            SettingsItem(
+                "背景",
+                Icons.Outlined.Wallpaper,
+                if (settings.backgroundVersion != 0L) "画像・ぼかし ${settings.backgroundBlur}・明るさ ${settings.backgroundBrightness}" else "グラデーション（既定）",
+                onClick = navigation.openAppearance,
+            )
+        }
         item {
             SettingsItem("テーマ", Icons.Outlined.DarkMode, settings.theme.label) { dialog = SettingsDialog.THEME }
         }

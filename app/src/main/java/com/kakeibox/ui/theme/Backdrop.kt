@@ -36,7 +36,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import com.kakeibox.AppGraph
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.coroutineContext
 import java.io.File
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -75,13 +78,20 @@ object BackdropRenderer {
             val radius = pageRadius(spec.blur)
             // ぼかすときは小さく描いてからぼかす（軽く、拡大時になめらかになる）
             val scale = if (radius > 0) PAGE_SCALE else 1
-            val base = source(context, spec, max(1, w / scale), max(1, h / scale))
-            applyBrightness(base, spec.brightness)
-            val page = if (radius > 0) blurred(base, radius) else base
-            val small = Bitmap.createScaledBitmap(base, max(1, w / ACRYLIC_SCALE), max(1, h / ACRYLIC_SCALE), true)
-            val acrylic = blurred(small, ACRYLIC_RADIUS + radius / 3)
-            page.asImageBitmap() to acrylic.asImageBitmap()
+            renderFrom(source(context, spec, max(1, w / scale), max(1, h / scale)), spec, size)
         }
+
+    /** 元の画像（ページ用の大きさに切り抜き済み）から、ページ用とアクリル用を作る */
+    suspend fun renderFrom(base: Bitmap, spec: BackgroundSpec, size: IntSize): Pair<ImageBitmap, ImageBitmap> {
+        val radius = pageRadius(spec.blur)
+        applyBrightness(base, spec.brightness)
+        coroutineContext.ensureActive()
+        val page = if (radius > 0) blurred(base, radius) else base
+        coroutineContext.ensureActive()
+        val small = Bitmap.createScaledBitmap(base, max(1, size.width / ACRYLIC_SCALE), max(1, size.height / ACRYLIC_SCALE), true)
+        val acrylic = blurred(small, ACRYLIC_RADIUS + radius / 3)
+        return page.asImageBitmap() to acrylic.asImageBitmap()
+    }
 
     /** 背景画像（中央で切り抜き）か、パレットのグラデーション */
     private fun source(context: Context, spec: BackgroundSpec, w: Int, h: Int): Bitmap {
@@ -173,6 +183,8 @@ fun KakeiboxBackground(preset: Backdrop? = null, content: @Composable () -> Unit
             val settings by AppGraph.settingsStore(context).settings.collectAsState()
             val spec = BackgroundSpec(settings.backgroundVersion, settings.backgroundBlur, settings.backgroundBrightness, dark)
             LaunchedEffect(spec, size) {
+                // スライダー操作中は、指が止まってから描き直す
+                if (backdrop.page != null) delay(80)
                 val (page, acrylic) = BackdropRenderer.render(context, spec, size)
                 backdrop.page = page
                 backdrop.acrylic = acrylic

@@ -50,6 +50,7 @@ import com.kakeibox.data.RecurringRunner
 import com.kakeibox.data.Today
 import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.quickadd.QuickAddContent
+import com.kakeibox.ui.screens.AppearanceScreen
 import com.kakeibox.ui.screens.BudgetScreen
 import com.kakeibox.ui.screens.CalendarScreen
 import com.kakeibox.data.BudgetKind
@@ -147,6 +148,7 @@ internal object Routes {
     fun budgets(kind: BudgetKind) = "budgets?kind=${kind.name}"
     const val TEMPLATES = "templates"
     const val SEARCH = "search"
+    const val APPEARANCE = "appearance"
     const val RECURRING = "recurring"
     const val RECURRING_EDIT = "recurring/edit?id={id}"
     fun recurringEdit(id: Long?) = if (id == null) "recurring/edit" else "recurring/edit?id=$id"
@@ -241,6 +243,7 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
                             openBudgets = { nav.navigate(Routes.budgets(BudgetKind.DAILY)) },
                             openTemplates = { nav.navigate(Routes.TEMPLATES) },
                             openRecurring = { nav.navigate(Routes.RECURRING) },
+                            openAppearance = { nav.navigate(Routes.APPEARANCE) },
                         ))
                     }
                 }
@@ -278,6 +281,9 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
         ) { entry ->
             val id = entry.arguments?.getLong("id")?.takeIf { it >= 0 }
             TransparentSurfaces { EditScreen(vm, id, onDone = { nav.popBackStack() }) }
+        }
+        composable(Routes.APPEARANCE) {
+            TransparentSurfaces { AppearanceScreen(vm, onBack = { nav.popBackStack() }) }
         }
         composable(Routes.SEARCH) {
             TransparentSurfaces { SearchScreen(vm, onBack = { nav.popBackStack() }, onOpen = { nav.navigate(Routes.edit(it)) }) }
