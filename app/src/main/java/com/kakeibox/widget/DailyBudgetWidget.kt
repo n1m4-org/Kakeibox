@@ -51,6 +51,7 @@ import com.kakeibox.data.BudgetTarget
 import com.kakeibox.data.Category
 import com.kakeibox.data.DailyBudgetStatus
 import com.kakeibox.data.Period
+import com.kakeibox.data.Today
 import com.kakeibox.data.computeDailyBudget
 import com.kakeibox.data.spentByDay
 import com.kakeibox.ui.color
@@ -79,7 +80,7 @@ class DailyBudgetWidget : GlanceAppWidget() {
             // セッション中の更新（記録・予算・対象の変更、日付の切り替わり）にも追従するよう、すべて購読する
             val target = BudgetTarget.fromKey(currentState(TARGET_KEY))
             val appSettings by settingsStore.settings.collectAsState()
-            val today = LocalDate.now()
+            val today by Today.date.collectAsState()
             val period = Period.of(today, appSettings.periodStartDay)
             val spentFlow = remember(period) { repo.observeDailyExpense(period) }
             val spent by spentFlow.collectAsState(initialSpent)

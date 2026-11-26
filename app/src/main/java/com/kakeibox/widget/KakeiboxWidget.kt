@@ -33,6 +33,7 @@ import com.kakeibox.MainActivity
 import com.kakeibox.QuickAddActivity
 import com.kakeibox.ui.yen
 import com.kakeibox.data.Period
+import com.kakeibox.data.Today
 import java.time.LocalDate
 
 /** 今月の支出合計と「支出を追加」ボタンを表示するホーム画面ウィジェット */
@@ -44,7 +45,8 @@ class KakeiboxWidget : GlanceAppWidget() {
         provideContent {
             // セッション中の更新（記録の追加・月替わり・締め日変更）にも追従するため、合計はFlowで購読する
             val settings by settingsStore.settings.collectAsState()
-            val period = Period.of(LocalDate.now(), settings.periodStartDay)
+            val today by Today.date.collectAsState()
+            val period = Period.of(today, settings.periodStartDay)
             val flow = remember(period) { repo.observePeriodExpense(period) }
             val total by flow.collectAsState(initial)
             GlanceTheme { Content(period, total) }

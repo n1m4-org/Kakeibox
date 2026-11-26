@@ -28,6 +28,10 @@ import com.kakeibox.data.Recurring
 import com.kakeibox.data.RecurringRunner
 import com.kakeibox.data.SearchFilter
 import com.kakeibox.data.Template
+import com.kakeibox.data.Today
+import com.kakeibox.data.currentPeriodFlow
+import com.kakeibox.data.todayStatusesFlow
+import com.kakeibox.data.weeklyStatusesFlow
 import com.kakeibox.notify.BudgetAlerts
 import com.kakeibox.notify.Reminder
 import com.kakeibox.data.search
@@ -70,9 +74,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (before.periodStartDay != after.periodStartDay) refreshWidgets()
     }
 
-    /** 今日を含む期間（締め日の設定に追従） */
-    val currentPeriod: StateFlow<Period> = settingsStore.settings
-        .map { Period.of(LocalDate.now(), it.periodStartDay) }
+    /** 今日の日付（0:00 に切り替わる） */
+    val today: StateFlow<LocalDate> = Today.date
+    private val startDay = settingsStore.settings.map { it.periodStartDay }
+
+    /** 今日を含む期間（日付・締め日の設定に追従） */
+    val currentPeriod: StateFlow<Period> = currentPeriodFlow(today, startDay)
         .stateIn(viewModelScope, SharingStarted.Eagerly, settingsStore.currentPeriod())
 
     /** 表示中の期間（今の期間からのずれ） */
@@ -100,27 +107,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** 今週の週予算の状況 */
-    val weeklyStatuses: StateFlow<List<PlainBudgetStatus>> = Week.of(LocalDate.now()).let { w ->
-        combine(repo.observeDailyExpense(w.start, w.endInclusive), budgetStore.weekly) { spent, budgets ->
-            plainBudgetStatuses(budgets, spent)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-    }
+    val weeklyStatuses: StateFlow<List<PlainBudgetStatus>> =
+        weeklyStatusesFlow(today, budgetStore.weekly) { w -> repo.observeDailyExpense(w.start, w.endInclusive) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** 設定済みの対象ごとの今日の予算の状況 */
     val todayStatuses: StateFlow<List<TargetStatus>> =
-        currentPeriod.flatMapLatest { p ->
-            combine(repo.observeDailyExpense(p), budgetStore.daily) { spent, settings ->
-                computeTodayStatuses(settings, spent, LocalDate.now(), p.start)
-            }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        todayStatusesFlow(today, startDay, budgetStore.daily) { p -> repo.observeDailyExpense(p) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** 給料日までの状況（今の期間の集計を使う。給料日未設定は null） */
     val paydayStatus: StateFlow<PaydayStatus?> = currentPeriod
         .flatMapLatest { p -> repo.observePeriod(p).map { MonthSummary.from(it) } }
         .let { current ->
-            combine(current, settingsStore.settings, budgetStore.monthly) { summary, s, monthly ->
+            combine(current, settingsStore.settings, budgetStore.monthly, today) { summary, s, monthly, d ->
                 if (s.payday == 0) null
-                else paydayStatus(LocalDate.now(), s.payday, s.paydayShiftWeekend, monthly[BudgetTarget.All], summary)
+                else paydayStatus(d, s.payday, s.paydayShiftWeekend, monthly[BudgetTarget.All], summary)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -150,11 +152,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** 年間レポート */
     private val _year = MutableStateFlow(LocalDate.now().year)
-    val yearReport: StateFlow<YearReport?> = combine(_year, settingsStore.settings) { y, s -> y to s.periodStartDay }
+    val yearReport: StateFlow<YearReport?> = combine(_year, startDay) { y, s -> y to s }
         .flatMapLatest { (y, startDay) ->
             val periods = YearReport.periodsOf(y, startDay)
-            repo.observeRange(periods.first().start, periods.last().endInclusive)
-                .map { YearReport.build(y, startDay, it, LocalDate.now()) }
+            combine(repo.observeRange(periods.first().start, periods.last().endInclusive), today) { txs, d ->
+                YearReport.build(y, startDay, txs, d)
+            }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

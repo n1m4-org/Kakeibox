@@ -47,6 +47,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.lifecycle.lifecycleScope
 import com.kakeibox.data.RecurringRunner
+import com.kakeibox.data.Today
 import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.quickadd.QuickAddContent
 import com.kakeibox.ui.screens.BudgetScreen
@@ -94,6 +95,8 @@ class MainActivity : FragmentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // スリープ中に日付が変わっていた場合に備えて「今日」を読み直す
+        Today.refresh()
         // 記録日が来た定期の収支を登録（WorkManagerの実行待ちを補う）
         lifecycleScope.launch { RecurringRunner.run(applicationContext) }
         if (locked) unlock()

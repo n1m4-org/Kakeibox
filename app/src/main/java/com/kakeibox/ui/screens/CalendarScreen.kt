@@ -59,11 +59,12 @@ fun CalendarScreen(vm: MainViewModel, contentPadding: PaddingValues, onOpen: (Lo
     val month by vm.calendarMonth.collectAsStateWithLifecycle()
     val txs by vm.calendarTransactions.collectAsStateWithLifecycle()
     val daily by vm.dailyBudget.collectAsStateWithLifecycle()
+    val today by vm.today.collectAsStateWithLifecycle()
     CalendarContent(
         month = month,
         txs = txs,
         dailyLimit = daily[BudgetTarget.All]?.amount,
-        today = LocalDate.now(),
+        today = today,
         contentPadding = contentPadding,
         onPrev = { vm.changeCalendarMonth(-1) },
         onNext = { vm.changeCalendarMonth(1) },

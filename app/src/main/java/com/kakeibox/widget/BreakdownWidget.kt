@@ -41,6 +41,7 @@ import com.kakeibox.MainActivity
 import com.kakeibox.data.BudgetTarget
 import com.kakeibox.data.Category
 import com.kakeibox.data.Period
+import com.kakeibox.data.Today
 import com.kakeibox.data.categoryRanking
 import com.kakeibox.ui.yen
 import java.time.LocalDate
@@ -53,7 +54,8 @@ class BreakdownWidget : GlanceAppWidget() {
         val initial = repo.dailyExpense(settingsStore.currentPeriod())
         provideContent {
             val settings by settingsStore.settings.collectAsState()
-            val period = Period.of(LocalDate.now(), settings.periodStartDay)
+            val today by Today.date.collectAsState()
+            val period = Period.of(today, settings.periodStartDay)
             val flow = remember(period) { repo.observeDailyExpense(period) }
             val spent by flow.collectAsState(initial)
             val total = spent.sumOf { it.total }
