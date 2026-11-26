@@ -55,6 +55,9 @@ dependencies {
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.biometric)
+    // biometric 1.1.0 が古い fragment 1.2.5 を引き込み、FragmentActivity が
+    // ActivityResult API の requestCode（16bit超）を拒否してクラッシュするため、新しい版に固定する
+    implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
