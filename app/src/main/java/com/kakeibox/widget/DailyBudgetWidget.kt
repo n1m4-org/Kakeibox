@@ -89,7 +89,7 @@ class DailyBudgetWidget : GlanceAppWidget() {
             val status = settings[target]?.let {
                 computeDailyBudget(it.amount, LocalDate.ofEpochDay(it.since), today, spent.spentByDay(target), period.start)
             }
-            GlanceTheme { Content(context, target, status, period) }
+            GlanceTheme(colors = WidgetColors) { Content(context, target, status, period) }
         }
     }
 

@@ -59,7 +59,7 @@ class BreakdownWidget : GlanceAppWidget() {
             val flow = remember(period) { repo.observeDailyExpense(period) }
             val spent by flow.collectAsState(initial)
             val total = spent.sumOf { it.total }
-            GlanceTheme { Content(period, total, categoryRanking(spent, TOP)) }
+            GlanceTheme(colors = WidgetColors) { Content(period, total, categoryRanking(spent, TOP)) }
         }
     }
 

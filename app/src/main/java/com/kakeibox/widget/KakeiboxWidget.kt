@@ -49,7 +49,7 @@ class KakeiboxWidget : GlanceAppWidget() {
             val period = Period.of(today, settings.periodStartDay)
             val flow = remember(period) { repo.observePeriodExpense(period) }
             val total by flow.collectAsState(initial)
-            GlanceTheme { Content(period, total) }
+            GlanceTheme(colors = WidgetColors) { Content(period, total) }
         }
     }
 

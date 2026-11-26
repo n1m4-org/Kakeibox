@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.biometric)
     // biometric 1.1.0 が古い fragment 1.2.5 を引き込み、FragmentActivity が
