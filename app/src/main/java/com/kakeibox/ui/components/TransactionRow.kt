@@ -26,36 +26,33 @@ import com.kakeibox.ui.theme.IncomeColor
 import com.kakeibox.ui.yen
 
 /**
- * 明細の1行（カテゴリ・支払い方法・メモ・金額）。
+ * 明細の1行：カテゴリ＋支払い方法のアイコン／メモ（あるときだけ）／金額。
  * @param showDate 検索結果など、日付見出しがない一覧では日付も表示する
  */
 @Composable
 fun TransactionRow(tx: Transaction, onClick: () -> Unit, showDate: Boolean = false) {
     val cat = tx.categoryEnum
+    val sub = MaterialTheme.colorScheme.onSurfaceVariant
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         CategoryBadge(cat)
         Column(Modifier.weight(1f)) {
-            Text(cat.label, style = MaterialTheme.typography.bodyLarge)
-            val sub = MaterialTheme.typography.bodySmall
-            val subColor = MaterialTheme.colorScheme.onSurfaceVariant
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(tx.payment.icon, null, Modifier.size(14.dp), tint = subColor)
-                Text(
-                    buildString {
-                        append(" ")
-                        if (showDate) append(tx.localDate.dayLabel()).append("・")
-                        append(tx.payment.label)
-                        if (tx.memo.isNotBlank()) append("・").append(tx.memo)
-                    },
-                    style = sub, color = subColor, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                )
+                Text(cat.label, style = MaterialTheme.typography.bodyLarge)
+                Spacer(Modifier.width(6.dp))
+                Icon(tx.payment.icon, tx.payment.label, Modifier.size(14.dp), tint = sub)
+            }
+            val detail = listOfNotNull(
+                tx.localDate.dayLabel().takeIf { showDate },
+                tx.memo.takeIf { it.isNotBlank() },
+            ).joinToString("・")
+            if (detail.isNotEmpty()) {
+                Text(detail, style = MaterialTheme.typography.bodySmall, color = sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        Spacer(Modifier.width(4.dp))
         val income = tx.type == TxType.INCOME
         Text(
             (if (income) "+" else "-") + yen(tx.amount),

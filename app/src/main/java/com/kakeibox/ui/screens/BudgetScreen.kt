@@ -1,5 +1,7 @@
 package com.kakeibox.ui.screens
 
+import com.kakeibox.ui.theme.AcrylicPanel
+import com.kakeibox.ui.theme.panelPadding
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -98,7 +100,8 @@ internal fun BudgetContent(
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
+        AcrylicPanel(Modifier.padding(padding).panelPadding()) {
+            LazyColumn(Modifier.fillMaxSize()) {
             item {
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                     BudgetKind.entries.forEachIndexed { i, k ->
@@ -136,6 +139,7 @@ internal fun BudgetContent(
                     )
                 }
             }
+        }
         }
     }
 

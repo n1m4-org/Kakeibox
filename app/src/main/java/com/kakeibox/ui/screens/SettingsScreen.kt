@@ -1,5 +1,7 @@
 package com.kakeibox.ui.screens
 
+import com.kakeibox.ui.theme.AcrylicPanel
+import com.kakeibox.ui.theme.panelPadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -122,7 +124,8 @@ internal fun SettingsContent(
 ) {
     var dialog by rememberSaveable { mutableStateOf<SettingsDialog?>(null) }
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = contentPadding) {
+    AcrylicPanel(Modifier.padding(contentPadding).panelPadding()) {
+        LazyColumn(Modifier.fillMaxSize()) {
         item { SettingsSection("予算") }
         item {
             SettingsItem("予算の設定", Icons.Outlined.Savings, "全体・カテゴリごとの1日／1週間／1か月の予算", onClick = navigation.openBudgets)
@@ -230,6 +233,7 @@ internal fun SettingsContent(
         item {
             SettingsItem("テーマ", Icons.Outlined.DarkMode, settings.theme.label) { dialog = SettingsDialog.THEME }
         }
+    }
     }
 
     when (dialog) {

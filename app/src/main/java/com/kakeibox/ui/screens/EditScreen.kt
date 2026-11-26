@@ -1,5 +1,7 @@
 package com.kakeibox.ui.screens
 
+import com.kakeibox.ui.theme.AcrylicPanel
+import com.kakeibox.ui.theme.panelPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -129,8 +131,9 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
         },
     ) { padding ->
         if (!loaded) return@Scaffold
-        Column(
-            Modifier.fillMaxSize().padding(padding).imePadding()
+        AcrylicPanel(Modifier.padding(padding).imePadding().panelPadding()) {
+            Column(
+            Modifier.fillMaxSize()
                 .verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -186,6 +189,7 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
             ) { Text("保存") }
+        }
         }
     }
 

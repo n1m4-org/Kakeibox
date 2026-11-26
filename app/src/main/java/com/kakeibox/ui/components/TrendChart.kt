@@ -49,6 +49,8 @@ fun TrendChart(totals: List<PeriodTotal>, modifier: Modifier = Modifier, initial
     val lineColor = MaterialTheme.colorScheme.primary
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val highlight = MaterialTheme.colorScheme.surfaceVariant
+    val incomeColor = IncomeColor
+    val expenseColor = ExpenseColor
 
     Column(modifier) {
         val sel = totals[selected.coerceIn(0, totals.lastIndex)]
@@ -88,10 +90,10 @@ fun TrendChart(totals: List<PeriodTotal>, modifier: Modifier = Modifier, initial
             totals.forEachIndexed { i, t ->
                 val cx = groupW * i + groupW / 2
                 if (t.income > 0) {
-                    drawRoundRect(IncomeColor, Offset(cx - barW - 1f, y(t.income)), Size(barW, zeroY - y(t.income)), CornerRadius(4f))
+                    drawRoundRect(incomeColor, Offset(cx - barW - 1f, y(t.income)), Size(barW, zeroY - y(t.income)), CornerRadius(4f))
                 }
                 if (t.expense > 0) {
-                    drawRoundRect(ExpenseColor, Offset(cx + 1f, y(t.expense)), Size(barW, zeroY - y(t.expense)), CornerRadius(4f))
+                    drawRoundRect(expenseColor, Offset(cx + 1f, y(t.expense)), Size(barW, zeroY - y(t.expense)), CornerRadius(4f))
                 }
             }
             // 収支の折れ線

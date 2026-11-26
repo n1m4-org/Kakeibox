@@ -1,5 +1,8 @@
 package com.kakeibox.ui.screens
 
+import com.kakeibox.ui.theme.AcrylicPanel
+import com.kakeibox.ui.theme.innerCardColors
+import com.kakeibox.ui.theme.panelPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +33,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -77,7 +81,8 @@ fun ReportScreen(vm: MainViewModel, contentPadding: PaddingValues) {
     val monthlyBudgets by vm.monthlyBudget.collectAsStateWithLifecycle()
     val yearReport by vm.yearReport.collectAsStateWithLifecycle()
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = contentPadding) {
+    AcrylicPanel(Modifier.padding(contentPadding).panelPadding()) {
+        LazyColumn(Modifier.fillMaxSize()) {
         item {
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 ReportMode.entries.forEachIndexed { i, m ->
@@ -101,6 +106,7 @@ fun ReportScreen(vm: MainViewModel, contentPadding: PaddingValues) {
                 yearReport?.let { yearReport(it, type, { t -> type = t }) }
             }
         }
+    }
     }
 }
 
@@ -181,7 +187,7 @@ internal fun LazyListScope.monthReport(
     if (trend.isNotEmpty()) {
         item { SectionTitle("推移（直近12か月）") }
         item {
-            Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Card(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), colors = innerCardColors()) {
                 TrendChart(trend, Modifier.padding(16.dp))
             }
         }
@@ -192,7 +198,7 @@ internal fun LazyListScope.monthReport(
 internal fun LazyListScope.yearReport(report: YearReport, type: TxType, onType: (TxType) -> Unit) {
     val s = report.summary
     item {
-        Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Card(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), colors = innerCardColors()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("${report.year}年の収支", style = MaterialTheme.typography.labelLarge)
                 Text(
@@ -223,7 +229,7 @@ internal fun LazyListScope.yearReport(report: YearReport, type: TxType, onType: 
     }
     item { SectionTitle("月別の推移") }
     item {
-        Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Card(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), colors = innerCardColors()) {
             TrendChart(report.months.take(report.elapsedMonths), Modifier.padding(16.dp))
         }
     }
@@ -300,6 +306,8 @@ private fun CategoryRow(ct: CategoryTotal, sub: String?, subColor: Color?, budge
 }
 
 /** 支出の増加・収入の減少は赤、それ以外は緑 */
+@Composable
+@ReadOnlyComposable
 private fun changeColor(type: TxType, diff: Long): Color = when {
     diff == 0L -> Color.Gray
     (type == TxType.EXPENSE) == (diff > 0) -> ExpenseColor

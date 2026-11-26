@@ -14,6 +14,10 @@ private val fullDateFormat = DateTimeFormatter.ofPattern("yyyy年M月d日(E)", L
 fun yen(v: Long): String = "¥" + yenFormat.format(v)
 fun signedYen(v: Long): String = (if (v < 0) "-" else "") + yen(kotlin.math.abs(v))
 fun LocalDate.dayLabel(): String = format(dayFormat)
+
+/** 「25日(水)」（月が分かっている一覧の見出し用） */
+fun LocalDate.shortDayLabel(): String = format(shortDayFormat)
+private val shortDayFormat = DateTimeFormatter.ofPattern("d日(E)", Locale.JAPAN)
 fun LocalDate.fullLabel(): String = format(fullDateFormat)
 
 /** 繰り越しなど増減を表す金額（+¥300 / -¥400 / ¥0） */

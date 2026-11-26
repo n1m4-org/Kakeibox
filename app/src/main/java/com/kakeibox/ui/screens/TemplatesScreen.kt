@@ -1,5 +1,7 @@
 package com.kakeibox.ui.screens
 
+import com.kakeibox.ui.theme.AcrylicPanel
+import com.kakeibox.ui.theme.panelPadding
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -74,7 +76,8 @@ internal fun TemplatesContent(
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
+        AcrylicPanel(Modifier.padding(padding).panelPadding()) {
+            LazyColumn(Modifier.fillMaxSize()) {
             item {
                 Text(
                     "クイック入力の上部に表示され、タップするだけで今日の記録になります。" +
@@ -104,6 +107,7 @@ internal fun TemplatesContent(
                     },
                 )
             }
+        }
         }
     }
 

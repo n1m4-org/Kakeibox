@@ -32,6 +32,12 @@ data class AppSettings(
     val budgetAlertEnabled: Boolean = false,
     /** アプリロック */
     val appLock: Boolean = false,
+    /** 背景画像（0=なし。画像を変えるたびに更新時刻を入れて再読み込みさせる） */
+    val backgroundVersion: Long = 0,
+    /** 背景のぼかし（0〜100） */
+    val backgroundBlur: Int = 30,
+    /** 背景の明るさ（-100=暗く 〜 100=明るく） */
+    val backgroundBrightness: Int = 0,
 )
 
 /** 設定の保存（SharedPreferences）と購読 */
@@ -64,6 +70,9 @@ class SettingsStore(context: Context) {
             .putInt(KEY_REMINDER_MINUTES, s.reminderMinutes)
             .putBoolean(KEY_BUDGET_ALERT, s.budgetAlertEnabled)
             .putBoolean(KEY_APP_LOCK, s.appLock)
+            .putLong(KEY_BG_VERSION, s.backgroundVersion)
+            .putInt(KEY_BG_BLUR, s.backgroundBlur)
+            .putInt(KEY_BG_BRIGHTNESS, s.backgroundBrightness)
             .apply()
     }
 
@@ -77,6 +86,9 @@ class SettingsStore(context: Context) {
         const val KEY_REMINDER_MINUTES = "reminder_minutes"
         const val KEY_BUDGET_ALERT = "budget_alert"
         const val KEY_APP_LOCK = "app_lock"
+        const val KEY_BG_VERSION = "background_version"
+        const val KEY_BG_BLUR = "background_blur"
+        const val KEY_BG_BRIGHTNESS = "background_brightness"
 
         fun load(p: SharedPreferences) = AppSettings(
             theme = p.getString(KEY_THEME, null)?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
@@ -88,6 +100,9 @@ class SettingsStore(context: Context) {
             reminderMinutes = p.getInt(KEY_REMINDER_MINUTES, 21 * 60).coerceIn(0, 24 * 60 - 1),
             budgetAlertEnabled = p.getBoolean(KEY_BUDGET_ALERT, false),
             appLock = p.getBoolean(KEY_APP_LOCK, false),
+            backgroundVersion = p.getLong(KEY_BG_VERSION, 0),
+            backgroundBlur = p.getInt(KEY_BG_BLUR, 30).coerceIn(0, 100),
+            backgroundBrightness = p.getInt(KEY_BG_BRIGHTNESS, 0).coerceIn(-100, 100),
         )
     }
 }

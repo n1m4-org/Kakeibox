@@ -1,5 +1,7 @@
 package com.kakeibox.ui.screens
 
+import com.kakeibox.ui.theme.AcrylicPanel
+import com.kakeibox.ui.theme.panelPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -116,7 +118,8 @@ internal fun SearchContent(
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding).imePadding()) {
+        AcrylicPanel(Modifier.padding(padding).imePadding().panelPadding()) {
+            LazyColumn(Modifier.fillMaxSize()) {
             item {
                 TextButton(onClick = { showFilters = !showFilters }, modifier = Modifier.padding(horizontal = 8.dp)) {
                     Icon(Icons.Outlined.FilterList, null)
@@ -205,6 +208,7 @@ internal fun SearchContent(
                     )
                 }
             }
+        }
         }
     }
 

@@ -1,5 +1,7 @@
 package com.kakeibox.ui.screens
 
+import com.kakeibox.ui.theme.AcrylicPanel
+import com.kakeibox.ui.theme.panelPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -92,7 +95,8 @@ internal fun CalendarContent(
     val selected = month.atDay(selectedDay.coerceIn(1, month.lengthOfMonth()))
     val dayTxs = txs.filter { it.localDate == selected }.sortedByDescending { it.id }
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = contentPadding) {
+    AcrylicPanel(Modifier.padding(contentPadding).panelPadding()) {
+        LazyColumn(Modifier.fillMaxSize()) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                 IconButton(onClick = onPrev) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "前の月") }
@@ -141,7 +145,7 @@ internal fun CalendarContent(
                 }
                 if (dailyLimit != null) {
                     Text(
-                        "赤いマスは1日の予算（全体 ${yen(dailyLimit)}）を超えた日",
+                        "色付きのマス：1日の予算（${yen(dailyLimit)}）超え",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 8.dp, top = 4.dp),
@@ -169,6 +173,7 @@ internal fun CalendarContent(
             TransactionRow(tx, onClick = { onOpen(tx.id) })
             HorizontalDivider()
         }
+    }
     }
 }
 
@@ -210,9 +215,11 @@ private fun DayCell(
     }
 }
 
-/** 日曜は赤、土曜は青 */
+/** 日曜はローズ、土曜はティール（パレットの色） */
+@Composable
+@ReadOnlyComposable
 private fun weekdayColor(sundayIndex: Int): Color? = when (sundayIndex) {
-    0 -> Color(0xFFD32F2F)
-    6 -> Color(0xFF1976D2)
+    0 -> ExpenseColor
+    6 -> IncomeColor
     else -> null
 }

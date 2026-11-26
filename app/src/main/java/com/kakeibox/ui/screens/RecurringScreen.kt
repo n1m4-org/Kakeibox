@@ -1,5 +1,7 @@
 package com.kakeibox.ui.screens
 
+import com.kakeibox.ui.theme.AcrylicPanel
+import com.kakeibox.ui.theme.panelPadding
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -90,7 +92,8 @@ internal fun RecurringContent(
             FloatingActionButton(onClick = { onEdit(null) }) { Icon(Icons.Outlined.Add, "定期の収支を追加") }
         },
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
+        AcrylicPanel(Modifier.padding(padding).panelPadding()) {
+            LazyColumn(Modifier.fillMaxSize()) {
             item {
                 Text(
                     "家賃・サブスク・給料など、毎月決まった日に自動で明細に記録します。",
@@ -132,6 +135,7 @@ internal fun RecurringContent(
                     },
                 )
             }
+        }
         }
     }
 }
@@ -180,8 +184,9 @@ fun RecurringEditScreen(vm: MainViewModel, id: Long?, onDone: () -> Unit) {
         },
     ) { padding ->
         if (!loaded) return@Scaffold
-        Column(
-            Modifier.fillMaxSize().padding(padding).imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
+        AcrylicPanel(Modifier.padding(padding).imePadding().panelPadding()) {
+            Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             TypeToggle(type, onChange = {
@@ -239,6 +244,7 @@ fun RecurringEditScreen(vm: MainViewModel, id: Long?, onDone: () -> Unit) {
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
             ) { Text("保存") }
+        }
         }
     }
 

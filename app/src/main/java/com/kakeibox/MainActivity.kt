@@ -63,6 +63,13 @@ import com.kakeibox.ui.screens.SearchScreen
 import com.kakeibox.ui.screens.SettingsScreen
 import com.kakeibox.ui.screens.TemplatesScreen
 import com.kakeibox.ui.theme.KakeiboxTheme
+import com.kakeibox.ui.theme.KakeiboxBackground
+import com.kakeibox.ui.theme.TransparentSurfaces
+import com.kakeibox.ui.theme.acrylic
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.unit.dp
 import com.kakeibox.ui.yen
 import kotlinx.coroutines.launch
 
@@ -156,6 +163,8 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
         if (startRoute != null) nav.navigate(startRoute)
     }
 
+    // アプリ全体の背景（画像またはパレットのグラデーション）。各画面はこの上にアクリルで重なる
+    KakeiboxBackground {
     NavHost(nav, startDestination = "tabs") {
         composable("tabs") {
             val inner = rememberNavController()
@@ -180,9 +189,14 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
             }
 
             Scaffold(
+                containerColor = Color.Transparent,
                 snackbarHost = { SnackbarHost(snackbar) },
                 bottomBar = {
-                    NavigationBar {
+                    NavigationBar(
+                        modifier = Modifier.acrylic(RectangleShape),
+                        containerColor = Color.Transparent,
+                        tonalElevation = 0.dp,
+                    ) {
                         listOf(
                             Triple(Routes.HOME, "明細", Icons.AutoMirrored.Outlined.ReceiptLong),
                             Triple(Routes.CALENDAR, "カレンダー", Icons.Outlined.CalendarMonth),
@@ -263,30 +277,31 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
             arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
         ) { entry ->
             val id = entry.arguments?.getLong("id")?.takeIf { it >= 0 }
-            EditScreen(vm, id, onDone = { nav.popBackStack() })
+            TransparentSurfaces { EditScreen(vm, id, onDone = { nav.popBackStack() }) }
         }
         composable(Routes.SEARCH) {
-            SearchScreen(vm, onBack = { nav.popBackStack() }, onOpen = { nav.navigate(Routes.edit(it)) })
+            TransparentSurfaces { SearchScreen(vm, onBack = { nav.popBackStack() }, onOpen = { nav.navigate(Routes.edit(it)) }) }
         }
         composable(Routes.TEMPLATES) {
-            TemplatesScreen(vm, onBack = { nav.popBackStack() }, onCreate = { nav.navigate(Routes.edit()) })
+            TransparentSurfaces { TemplatesScreen(vm, onBack = { nav.popBackStack() }, onCreate = { nav.navigate(Routes.edit()) }) }
         }
         composable(Routes.RECURRING) {
-            RecurringScreen(vm, onBack = { nav.popBackStack() }, onEdit = { nav.navigate(Routes.recurringEdit(it)) })
+            TransparentSurfaces { RecurringScreen(vm, onBack = { nav.popBackStack() }, onEdit = { nav.navigate(Routes.recurringEdit(it)) }) }
         }
         composable(
             Routes.RECURRING_EDIT,
             arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
         ) { entry ->
             val id = entry.arguments?.getLong("id")?.takeIf { it >= 0 }
-            RecurringEditScreen(vm, id, onDone = { nav.popBackStack() })
+            TransparentSurfaces { RecurringEditScreen(vm, id, onDone = { nav.popBackStack() }) }
         }
         composable(
             Routes.BUDGETS,
             arguments = listOf(navArgument("kind") { type = NavType.StringType; defaultValue = BudgetKind.DAILY.name }),
         ) { entry ->
             val kind = BudgetKind.valueOf(entry.arguments?.getString("kind") ?: BudgetKind.DAILY.name)
-            BudgetScreen(vm, kind, onBack = { nav.popBackStack() })
+            TransparentSurfaces { BudgetScreen(vm, kind, onBack = { nav.popBackStack() }) }
         }
+    }
     }
 }

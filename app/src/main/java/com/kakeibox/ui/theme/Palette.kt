@@ -1,5 +1,7 @@
 package com.kakeibox.ui.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 
@@ -26,11 +28,13 @@ fun Color.darken(amount: Float): Color = lerp(this, Color.Black, amount)
 /** 白に近づける */
 fun Color.lighten(amount: Float): Color = lerp(this, Color.White, amount)
 
-/** 収入の色 */
-val IncomeColor: Color = Palette.Teal.darken(0.22f)
+/** 収入の色（ライトは濃いめ、ダークは明るめにして読みやすく） */
+val IncomeColor: Color
+    @Composable @ReadOnlyComposable get() = if (isDarkScheme()) Palette.Sage.lighten(0.15f) else Palette.Teal.darken(0.22f)
 
 /** 支出・予算超過の色 */
-val ExpenseColor: Color = Palette.Rose.darken(0.25f)
+val ExpenseColor: Color
+    @Composable @ReadOnlyComposable get() = if (isDarkScheme()) Palette.Petal.lighten(0.1f) else Palette.Rose.darken(0.25f)
 
 /** 予算の80%を超えたときの色 */
 val WarningColor: Color = Palette.Petal.darken(0.08f)
