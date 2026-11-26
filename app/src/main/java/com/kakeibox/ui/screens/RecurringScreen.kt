@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -56,6 +57,7 @@ import com.kakeibox.ui.components.CategoryBadge
 import com.kakeibox.ui.components.CategoryChips
 import com.kakeibox.ui.components.PaymentChips
 import com.kakeibox.ui.dayLabel
+import com.kakeibox.ui.icon
 import com.kakeibox.ui.theme.ExpenseColor
 import com.kakeibox.ui.theme.IncomeColor
 import com.kakeibox.ui.yen
@@ -109,10 +111,14 @@ internal fun RecurringContent(
                     leadingContent = { CategoryBadge(r.categoryEnum) },
                     headlineContent = { Text(r.name) },
                     supportingContent = {
-                        Text(
-                            if (r.enabled) "${r.dayLabel}・次回 ${r.nextDate(today).dayLabel()}・${r.payment.label}"
-                            else "${r.dayLabel}・停止中",
-                        )
+                        Column {
+                            Text(if (r.enabled) "${r.dayLabel}・次回 ${r.nextDate(today).dayLabel()}" else "${r.dayLabel}・停止中")
+                            // 支払い方法は2行目に（明細の行と同じくアイコン＋名前）
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(r.payment.icon, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(" " + r.payment.label, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                     },
                     trailingContent = {
                         Column(horizontalAlignment = Alignment.End) {
