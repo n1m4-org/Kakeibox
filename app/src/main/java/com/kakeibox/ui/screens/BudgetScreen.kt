@@ -40,6 +40,8 @@ import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.components.BudgetDialog
 import com.kakeibox.ui.components.TargetBadge
 import com.kakeibox.ui.monthlyBudgetLabel
+import com.kakeibox.ui.categoryConfig
+import com.kakeibox.data.TxType
 import com.kakeibox.ui.yen
 
 const val CARRYOVER_RULE =
@@ -84,7 +86,11 @@ internal fun BudgetContent(
     var kind by rememberSaveable { mutableStateOf(initialKind) }
     var editing by remember { mutableStateOf<BudgetTarget?>(null) }
     val current = amounts[kind].orEmpty()
-    val categoryTargets = BudgetTarget.entries.filterIsInstance<BudgetTarget.Of>()
+    // 表示中のカテゴリと、非表示でも予算が設定されているカテゴリ
+    val cfg = categoryConfig()
+    val categoryTargets = cfg.ordered(TxType.EXPENSE)
+        .filter { !cfg.isHidden(it) || amounts.values.any { m -> m.containsKey(BudgetTarget.Of(it)) } }
+        .map { BudgetTarget.Of(it) }
 
     fun summary(amount: Long): String = when (kind) {
         BudgetKind.DAILY -> monthlyBudgetLabel(amount, period)

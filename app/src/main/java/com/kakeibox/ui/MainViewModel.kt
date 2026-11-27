@@ -28,6 +28,9 @@ import com.kakeibox.data.Recurring
 import com.kakeibox.data.RecurringRunner
 import com.kakeibox.data.SearchFilter
 import com.kakeibox.data.Template
+import com.kakeibox.data.AppDatabase
+import com.kakeibox.data.Categories
+import com.kakeibox.data.CategoryConfig
 import com.kakeibox.data.Today
 import com.kakeibox.data.currentPeriodFlow
 import com.kakeibox.data.todayStatusesFlow
@@ -213,6 +216,39 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun deleteRecurringById(id: Long) = viewModelScope.launch { recurringDao.find(id)?.let { recurringDao.delete(it) } }
+
+    /** カテゴリの設定（追加・並び順・非表示） */
+    private val categoryStore = AppGraph.categoryStore(app)
+    val categoryConfig: StateFlow<CategoryConfig> = Categories.config
+
+    fun addCategory(label: String, type: TxType, color: Long, icon: String) =
+        categoryStore.update { it.added(label, type, color, icon) }
+
+    fun updateCategory(c: Category, label: String, color: Long, icon: String) {
+        categoryStore.update { it.updated(c.key, label, color, icon) }
+        refreshWidgets()
+    }
+
+    fun setCategoryHidden(c: Category, hidden: Boolean) = categoryStore.update { it.withHidden(c, hidden) }
+
+    fun moveCategory(c: Category, delta: Int) = categoryStore.update { it.moved(c, delta) }
+
+    /** 明細・テンプレート・定期の収支でカテゴリが使われている件数 */
+    suspend fun categoryUsage(c: Category): Int {
+        val db = AppDatabase.get(getApplication())
+        return db.transactionDao().countByCategory(c.key) +
+            db.templateDao().countByCategory(c.key) +
+            db.recurringDao().countByCategory(c.key)
+    }
+
+    /** 使われていない追加カテゴリを削除する（そのカテゴリの予算も消す）。@return 削除できたら true */
+    suspend fun deleteCategory(c: Category): Boolean {
+        if (c.builtIn || categoryUsage(c) > 0) return false
+        BudgetKind.entries.forEach { budgetStore.set(it, BudgetTarget.Of(c), 0) }
+        categoryStore.update { it.removed(c.key) }
+        refreshWidgets()
+        return true
+    }
 
     /** テンプレートで今日の記録をつける */
     fun addFromTemplate(t: Template, enteredAmount: Long) = viewModelScope.launch {

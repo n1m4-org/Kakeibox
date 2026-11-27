@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.kakeibox.data.Category
 import com.kakeibox.data.PaymentMethod
 import com.kakeibox.data.TxType
+import com.kakeibox.ui.categoryConfig
 import com.kakeibox.ui.icon
 
 /** カテゴリの選択チップ（1つ選択） */
@@ -24,7 +25,9 @@ import com.kakeibox.ui.icon
 fun CategoryChips(type: TxType, selected: Category, onSelect: (Category) -> Unit) {
     Text("カテゴリ", style = MaterialTheme.typography.labelLarge)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Category.of(type).forEach { c ->
+        // 表示中のカテゴリ。編集中の記録が非表示のカテゴリなら、それも出す
+        val shown = categoryConfig().visible(type).let { if (selected.type == type && selected !in it) it + selected else it }
+        shown.forEach { c ->
             FilterChip(
                 selected = c == selected,
                 onClick = { onSelect(c) },

@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Backup
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material.icons.outlined.Lock
@@ -65,6 +66,7 @@ class SettingsNavigation(
     val openTemplates: () -> Unit,
     val openRecurring: () -> Unit,
     val openAppearance: () -> Unit = {},
+    val openCategories: () -> Unit = {},
 )
 
 @Composable
@@ -138,6 +140,9 @@ internal fun SettingsContent(
             SettingsItem("既定の支払い方法", settings.defaultPayment.icon, settings.defaultPayment.label) {
                 dialog = SettingsDialog.PAYMENT
             }
+        }
+        item {
+            SettingsItem("カテゴリ", Icons.Outlined.Category, "追加・並べ替え・非表示", onClick = navigation.openCategories)
         }
         item {
             SettingsItem("テンプレート", Icons.Outlined.Bookmarks, "よく使う記録をワンタップで", onClick = navigation.openTemplates)

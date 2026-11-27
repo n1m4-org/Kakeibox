@@ -56,6 +56,7 @@ import com.kakeibox.data.Category
 import com.kakeibox.data.PaymentMethod
 import com.kakeibox.data.Template
 import androidx.compose.ui.graphics.Color
+import com.kakeibox.ui.categoryConfig
 import com.kakeibox.ui.icon
 import com.kakeibox.data.TxType
 import com.kakeibox.ui.components.CategoryBadge
@@ -168,7 +169,8 @@ fun QuickAddContent(
         }
 
         // カテゴリ（タップで即保存）。選択済みのときは出さない
-        if (preset == null) Category.of(TxType.EXPENSE).chunked(4).forEach { row ->
+        val expenseCategories = categoryConfig().visible(TxType.EXPENSE)
+        if (preset == null) expenseCategories.chunked(4).forEach { row ->
             Row(Modifier.fillMaxWidth()) {
                 row.forEach { c ->
                     CategoryCell(c, Modifier.weight(1f)) {

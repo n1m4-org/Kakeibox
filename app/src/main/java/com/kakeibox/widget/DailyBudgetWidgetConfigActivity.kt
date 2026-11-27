@@ -88,6 +88,11 @@ internal fun ConfigContent(
     period: Period,
     onSelect: (BudgetTarget) -> Unit,
 ) {
+    val cfg = com.kakeibox.ui.categoryConfig()
+    val targets = listOf(BudgetTarget.All) +
+        cfg.ordered(com.kakeibox.data.TxType.EXPENSE)
+            .filter { !cfg.isHidden(it) || it.key == currentKey }
+            .map { BudgetTarget.Of(it) }
     Scaffold(topBar = { TopAppBar(title = { Text("ウィジェットに表示する予算") }) }) { padding ->
         LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
             item {
@@ -98,7 +103,7 @@ internal fun ConfigContent(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
-            items(BudgetTarget.entries, key = { it.key }) { target ->
+            items(targets, key = { it.key }) { target ->
                 val setting = settings[target]
                 ListItem(
                     modifier = Modifier.clickable { onSelect(target) },

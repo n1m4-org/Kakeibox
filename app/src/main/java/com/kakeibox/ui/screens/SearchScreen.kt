@@ -63,6 +63,7 @@ import com.kakeibox.data.TxType
 import com.kakeibox.ui.MainViewModel
 import com.kakeibox.ui.components.TransactionRow
 import com.kakeibox.ui.fullLabel
+import com.kakeibox.ui.categoryConfig
 import com.kakeibox.ui.icon
 import com.kakeibox.ui.theme.ExpenseColor
 import com.kakeibox.ui.theme.IncomeColor
@@ -138,7 +139,9 @@ internal fun SearchContent(
                         }
                         Text("カテゴリ（複数可）", style = MaterialTheme.typography.labelLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Category.entries.filter { filter.type == null || it.type == filter.type }.forEach { c ->
+                            val cfg = categoryConfig()
+                            (cfg.ordered(TxType.EXPENSE) + cfg.ordered(TxType.INCOME))
+                                .filter { filter.type == null || it.type == filter.type }.forEach { c ->
                                 val selected = c in filter.categories
                                 FilterChip(
                                     selected = selected,
