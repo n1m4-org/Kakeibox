@@ -158,6 +158,24 @@ class DailyBudgetWidget : GlanceAppWidget() {
                 }
                 return
             }
+            BudgetWidgetLayout.STACK -> {
+                // 4×3以上：名前の行・残り / 予算・予算1本分ずつのバー（2段目以降が超過分）
+                Column(background.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    Header(target, icon, addButton)
+                    if (status == null) {
+                        Text("未設定（タップで設定）", style = TextStyle(color = WidgetText.sub, fontSize = 13.sp))
+                        return@Column
+                    }
+                    Row(verticalAlignment = Alignment.Bottom) { Amount(status, 20) }
+                    Spacer(GlanceModifier.height(6.dp))
+                    val barsHeight = size.height - 16.dp - HEADER_HEIGHT - 30.dp - 6.dp
+                    val maxBars = ((barsHeight + STACK_GAP) / (STACK_BAR + STACK_GAP)).toInt().coerceIn(1, MAX_STACK_BARS)
+                    // 今日の予算がマイナス（前日までの超過）のときは、1日の予算を1本分にする
+                    val scale = if (status.todayBudget > 0) status.todayBudget else status.daily
+                    StackedBarList(stackedBars(status.spentToday, scale, maxBars), status.ratio)
+                }
+                return
+            }
             else -> Unit
         }
 
@@ -202,6 +220,36 @@ class DailyBudgetWidget : GlanceAppWidget() {
             Row(verticalAlignment = Alignment.Bottom) { Amount(status, 20) }
             Spacer(GlanceModifier.height(4.dp))
             Bar(status, 6)
+        }
+    }
+
+    /** 積み上げバー：1段目は使用率の色、2段目以降（超過分）は赤。収まらない分は最後の段に「×本数」 */
+    @Composable
+    private fun StackedBarList(bars: StackedBars, ratio: Float) {
+        // Glance の Column は子が10個までなので、バーだけの Column にまとめ、間隔は余白で取る
+        Column(GlanceModifier.fillMaxWidth()) {
+            bars.fills.forEachIndexed { i, fill ->
+                val last = i == bars.fills.lastIndex && bars.more > 0
+                Row(
+                    GlanceModifier.fillMaxWidth().padding(top = if (i > 0) STACK_GAP else 0.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    LinearProgressIndicator(
+                        progress = fill,
+                        modifier = GlanceModifier.defaultWeight().height(STACK_BAR),
+                        color = if (i == 0) WidgetText.bar(ratio) else WidgetText.over,
+                        backgroundColor = WidgetText.track,
+                    )
+                    if (last) {
+                        Spacer(GlanceModifier.width(6.dp))
+                        Text(
+                            "×${bars.more}",
+                            style = TextStyle(color = WidgetText.over, fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -293,6 +341,13 @@ class DailyBudgetWidget : GlanceAppWidget() {
 
         /** 名前の行の高さ */
         private val HEADER_HEIGHT = 32.dp
+
+        /** 積み上げバーの太さと間隔 */
+        private val STACK_BAR = 8.dp
+        private val STACK_GAP = 6.dp
+
+        /** Glance の Column に入れられる子の上限 */
+        private const val MAX_STACK_BARS = 10
 
         /** ドーナツの Bitmap の最大サイズ（ウィジェットに渡せる画像の容量に収める） */
         private const val MAX_DONUT_PX = 420

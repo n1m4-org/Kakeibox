@@ -52,6 +52,28 @@ enum class BudgetWidgetLayout {
     DONUT,
     /** 縦長（2×3）：名前の行＋ドーナツ */
     DONUT_LABELED,
+    /** 4マス幅×3段以上：超過分をバーの段で積み上げる */
+    STACK,
+}
+
+/** 積み上げバーの中身。fills は各段の割合（0〜1）、more は最後の段が表す本数（収まったときは 0） */
+data class StackedBars(val fills: List<Float>, val more: Int)
+
+/**
+ * 予算1本分を1段として、使った額を段に分ける（2段目以降は超過分）。
+ * 段が [maxBars] に収まらないときは、最後の段を「残り more 本分」として満タンで表す。
+ *
+ * @param scale 1段の最大値（今日の予算）。0以下なら全部使い切り扱いの1段
+ */
+fun stackedBars(spent: Long, scale: Long, maxBars: Int): StackedBars {
+    val max = maxBars.coerceAtLeast(1)
+    if (scale <= 0) return StackedBars(listOf(1f), 0)
+    val total = spent.coerceAtLeast(0).toDouble() / scale
+    val needed = kotlin.math.ceil(total).toInt().coerceAtLeast(1)
+    if (needed <= max) {
+        return StackedBars(List(needed) { i -> (total - i).coerceIn(0.0, 1.0).toFloat() }, 0)
+    }
+    return StackedBars(List(max) { 1f }, needed - (max - 1))
 }
 
 /**
@@ -61,6 +83,7 @@ enum class BudgetWidgetLayout {
 fun budgetWidgetLayout(size: DpSize): BudgetWidgetLayout = when {
     size.height < WIDGET_TALL.height ->
         if (size.width >= 250.dp) BudgetWidgetLayout.ROW_WIDE else BudgetWidgetLayout.ROW
+    size.width >= 250.dp && size.height >= 170.dp -> BudgetWidgetLayout.STACK
     size.height >= 100.dp && size.width < size.height * 1.5f ->
         if (size.height >= size.width * 1.3f) BudgetWidgetLayout.DONUT_LABELED else BudgetWidgetLayout.DONUT
     else -> BudgetWidgetLayout.CARD
