@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,6 +28,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
@@ -75,8 +77,12 @@ fun QuickAddContent(
     templates: List<Template> = emptyList(),
     /** テンプレートのタップ。金額未設定のテンプレートにはキーパッドの金額を渡す */
     onTemplate: (template: Template, enteredAmount: Long) -> Unit = { _, _ -> },
+    /** 選択済みのカテゴリ（カテゴリの「今日の予算」ウィジェットから開いたとき）。null ならカテゴリをタップして記録 */
+    presetCategory: Category? = null,
 ) {
     var amount by rememberSaveable { mutableStateOf("") }
+    // 「変更」で外せる（外すと従来どおりカテゴリ一覧から選ぶ）
+    var preset by rememberSaveable(presetCategory) { mutableStateOf(presetCategory) }
     var payment by rememberSaveable(defaultPayment) { mutableStateOf(defaultPayment) }
     var error by remember { mutableStateOf(false) }
     val shake = remember { Animatable(0f) }
@@ -97,6 +103,16 @@ fun QuickAddContent(
             }
         }
 
+        // 選択済みのカテゴリ
+        preset?.let { c ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CategoryBadge(c, size = 36.dp)
+                Spacer(Modifier.width(10.dp))
+                Text(c.label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                TextButton(onClick = { preset = null }) { Text("変更") }
+            }
+        }
+
         // 金額表示
         Text(
             text = yen(amount.toLongOrNull() ?: 0),
@@ -107,7 +123,11 @@ fun QuickAddContent(
             modifier = Modifier.fillMaxWidth().offset { IntOffset(shake.value.roundToInt(), 0) },
         )
         Text(
-            if (error) "金額を入力してください" else "金額を入力して、カテゴリをタップすると記録されます",
+            when {
+                error -> "金額を入力してください"
+                preset != null -> "金額を入力して「記録」を押してください"
+                else -> "金額を入力して、カテゴリをタップすると記録されます"
+            },
             style = MaterialTheme.typography.bodySmall,
             color = if (error) ExpenseColor else MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -124,13 +144,14 @@ fun QuickAddContent(
             return null
         }
 
-        // テンプレート（タップで即保存）
-        if (templates.isNotEmpty()) {
+        // テンプレート（タップで即保存）。カテゴリ選択済みならそのカテゴリのものだけ
+        val shownTemplates = preset?.let { c -> templates.filter { it.categoryEnum == c } } ?: templates
+        if (shownTemplates.isNotEmpty()) {
             Row(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                templates.forEach { t ->
+                shownTemplates.forEach { t ->
                     SuggestionChip(
                         onClick = {
                             if (t.amount > 0) {
@@ -146,8 +167,8 @@ fun QuickAddContent(
             }
         }
 
-        // カテゴリ（タップで即保存）
-        Category.of(TxType.EXPENSE).chunked(4).forEach { row ->
+        // カテゴリ（タップで即保存）。選択済みのときは出さない
+        if (preset == null) Category.of(TxType.EXPENSE).chunked(4).forEach { row ->
             Row(Modifier.fillMaxWidth()) {
                 row.forEach { c ->
                     CategoryCell(c, Modifier.weight(1f)) {
@@ -168,6 +189,12 @@ fun QuickAddContent(
             },
             onClear = { amount = "" },
         )
+        preset?.let { c ->
+            Button(
+                onClick = { requireAmount()?.let { value -> onSave(value, c, payment); amount = "" } },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+            ) { Text("${c.label}として記録") }
+        }
         Spacer(Modifier.height(8.dp))
     }
 }

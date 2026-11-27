@@ -16,6 +16,8 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.action.ActionParameters
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -126,7 +128,11 @@ class DailyBudgetWidget : GlanceAppWidget() {
                 CircleIconButton(
                     imageProvider = ImageProvider(R.drawable.ic_add),
                     contentDescription = "支出を追加",
-                    onClick = actionStartActivity<QuickAddActivity>(),
+                    // カテゴリのウィジェットなら、そのカテゴリを選んだ状態でクイック入力を開く
+                    onClick = actionStartActivity<QuickAddActivity>(
+                        (target as? BudgetTarget.Of)?.let { actionParametersOf(CATEGORY_PARAM to it.category.name) }
+                            ?: actionParametersOf(),
+                    ),
                     modifier = GlanceModifier.size(36.dp),
                 )
             }
@@ -168,6 +174,9 @@ class DailyBudgetWidget : GlanceAppWidget() {
     companion object {
         /** ウィジェットごとに保存する予算対象のキー */
         val TARGET_KEY: Preferences.Key<String> = stringPreferencesKey("budget_target")
+
+        /** Glance は ActionParameters を Intent の extra として渡す */
+        private val CATEGORY_PARAM = ActionParameters.Key<String>(QuickAddActivity.EXTRA_CATEGORY)
     }
 }
 

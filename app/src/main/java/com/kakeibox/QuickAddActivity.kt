@@ -9,7 +9,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.lifecycle.lifecycleScope
+import com.kakeibox.data.Category
 import com.kakeibox.data.Transaction
+import com.kakeibox.data.TxType
 import com.kakeibox.data.quickExpense
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -55,6 +57,8 @@ class QuickAddActivity : ComponentActivity() {
                         onSave = { amount, category, payment -> saveAndFinish(quickExpense(amount, category, payment)) },
                         templates = templates,
                         onTemplate = { t, entered -> saveAndFinish(t.toTransaction(enteredAmount = entered)) },
+                        presetCategory = intent.getStringExtra(EXTRA_CATEGORY)
+                            ?.let { name -> Category.of(TxType.EXPENSE).firstOrNull { it.name == name } },
                         onDetail = {
                             startActivity(MainActivity.openEditIntent(this@QuickAddActivity))
                             finish()
@@ -63,5 +67,10 @@ class QuickAddActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        /** 選択済みにするカテゴリ（Category.name）。カテゴリの「今日の予算」ウィジェットから渡す */
+        const val EXTRA_CATEGORY = "category"
     }
 }
