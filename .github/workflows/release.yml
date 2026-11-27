@@ -59,7 +59,8 @@ jobs:
         run: |
           APK="kakeibox-${VERSION_CODE}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$APK"
-          git log -1 --pretty=%B > notes.txt
+          # 更新内容はコミットメッセージから（末尾の署名行は除く）
+          git log -1 --pretty=%B | grep -v -E '^(Co-Authored-By|Claude-Session):' > notes.txt
           gh release create "v1.0.${VERSION_CODE}" "$APK" \
             --title "Kakeibox 1.0.${VERSION_CODE}" \
             --notes-file notes.txt \
