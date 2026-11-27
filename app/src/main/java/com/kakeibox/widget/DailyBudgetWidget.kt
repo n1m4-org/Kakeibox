@@ -184,11 +184,31 @@ class DailyBudgetWidget : GlanceAppWidget() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (compact) {
-                // 縦1マス：アイコン・残り / 予算・＋ の1行と、細いバー。4マス幅以上は金額を右寄せ
-                val wide = layout == BudgetWidgetLayout.ROW_WIDE
+                // 縦1マス：アイコン・残り / 予算・＋ の1行と、細いバー。
+                // 3マス幅以上はアイコンの横に名前を出し、金額は右寄せ。名前を優先し、入り切らなければ「/ 予算」を省く
+                val wide = layout == BudgetWidgetLayout.ROW_WIDE || size.rowShowsLabel()
+                val fit = if (wide) {
+                    fitRow(
+                        available = size.width.value - ROW_FIXED_WIDTH,
+                        label = target.label,
+                        amount = status?.let { signedYen(it.remaining) } ?: "未設定",
+                        suffix = status?.let { budgetSuffix(it.todayBudget) } ?: "",
+                    )
+                } else {
+                    null
+                }
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     icon(18)
-                    Spacer(if (wide) GlanceModifier.defaultWeight() else GlanceModifier.width(6.dp))
+                    Spacer(GlanceModifier.width(6.dp))
+                    if (fit != null) {
+                        Text(
+                            fit.label,
+                            style = TextStyle(color = WidgetText.main, fontSize = ROW_LABEL_SP.sp, fontWeight = FontWeight.Medium),
+                            maxLines = 1,
+                        )
+                        Spacer(GlanceModifier.width(8.dp))
+                        Spacer(GlanceModifier.defaultWeight())
+                    }
                     if (status == null) {
                         Text(
                             "未設定",
@@ -199,7 +219,7 @@ class DailyBudgetWidget : GlanceAppWidget() {
                         Row(
                             if (wide) GlanceModifier else GlanceModifier.defaultWeight(),
                             verticalAlignment = Alignment.Bottom,
-                        ) { Amount(status, 16) }
+                        ) { Amount(status, ROW_AMOUNT_SP.toInt(), showSuffix = fit?.showSuffix ?: true) }
                     }
                     if (wide) Spacer(GlanceModifier.width(10.dp))
                     addButton()
@@ -312,7 +332,7 @@ class DailyBudgetWidget : GlanceAppWidget() {
 
     /** 残り（大・超過は赤）＋「 / 今日の予算」（小） */
     @Composable
-    private fun Amount(status: DailyBudgetStatus, size: Int) {
+    private fun Amount(status: DailyBudgetStatus, size: Int, showSuffix: Boolean = true) {
         Text(
             signedYen(status.remaining),
             style = TextStyle(
@@ -322,7 +342,9 @@ class DailyBudgetWidget : GlanceAppWidget() {
             ),
             maxLines = 1,
         )
-        Text(budgetSuffix(status.todayBudget), style = TextStyle(color = WidgetText.sub, fontSize = 11.sp), maxLines = 1)
+        if (showSuffix) {
+            Text(budgetSuffix(status.todayBudget), style = TextStyle(color = WidgetText.sub, fontSize = ROW_SUFFIX_SP.sp), maxLines = 1)
+        }
     }
 
     @Composable
@@ -338,6 +360,9 @@ class DailyBudgetWidget : GlanceAppWidget() {
     companion object {
         /** ウィジェットごとに保存する予算対象のキー */
         val TARGET_KEY: Preferences.Key<String> = stringPreferencesKey("budget_target")
+
+        /** 名前付きの1段で、名前と金額以外に使う幅（左右の余白24・アイコン18＋6・名前と金額の間8・＋の前10・＋28） */
+        private const val ROW_FIXED_WIDTH = 94f
 
         /** 名前の行の高さ */
         private val HEADER_HEIGHT = 32.dp

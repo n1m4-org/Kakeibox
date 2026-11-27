@@ -6,6 +6,9 @@ import com.kakeibox.widget.BudgetWidgetLayout
 import com.kakeibox.widget.StackedBars
 import com.kakeibox.widget.stackedBars
 import com.kakeibox.widget.budgetWidgetLayout
+import com.kakeibox.widget.rowShowsLabel
+import com.kakeibox.widget.RowFit
+import com.kakeibox.widget.fitRow
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -18,6 +21,15 @@ class WidgetLayoutTest {
         assertEquals(BudgetWidgetLayout.ROW, layout(235, 70))   // 3×1
         assertEquals(BudgetWidgetLayout.ROW_WIDE, layout(250, 40))
         assertEquals(BudgetWidgetLayout.ROW_WIDE, layout(320, 70)) // 4×1
+    }
+
+    @Test
+    fun oneRow_labelFromThreeCells() {
+        assertEquals(false, DpSize(110.dp, 40.dp).rowShowsLabel()) // 2×1（最小）
+        assertEquals(false, DpSize(150.dp, 70.dp).rowShowsLabel()) // 2×1
+        assertEquals(true, DpSize(180.dp, 40.dp).rowShowsLabel())  // 3×1（最小）
+        assertEquals(true, DpSize(235.dp, 70.dp).rowShowsLabel())  // 3×1
+        assertEquals(true, DpSize(320.dp, 70.dp).rowShowsLabel())  // 4×1
     }
 
     @Test
@@ -70,5 +82,21 @@ class WidgetLayoutTest {
     @Test
     fun stackedBars_noBudgetIsFull() {
         assertEquals(StackedBars(listOf(1f), 0), stackedBars(500, 0, 5))
+    }
+
+    @Test
+    fun fitRow_prefersLabel() {
+        // 4×1（320dp）：全部入る
+        assertEquals(RowFit("食費", true), fitRow(320f - 94f, "食費", "¥800", " / 1,200"))
+        // 3×1（180dp）：「/ 予算」を省いて名前を残す
+        assertEquals(RowFit("食費", false), fitRow(180f - 94f, "食費", "¥800", " / 1,200"))
+        // 3×1（180dp）で名前が長い：名前を詰める
+        assertEquals(RowFit("日用…", false), fitRow(180f - 94f, "日用品・消耗品", "¥800", " / 1,200"))
+        // 3×1（235dp）：マイナスの金額でも全部入る
+        assertEquals(RowFit("食費", true), fitRow(235f - 94f, "食費", "-¥12,150", " / 800"))
+        // 2文字の名前は詰めても短くならないのでそのまま
+        assertEquals("食費", fitRow(10f, "食費", "-¥123,456", " / 800").label)
+        // とても狭い長い名前は1文字＋…
+        assertEquals("日…", fitRow(10f, "日用品・消耗品", "-¥123,456", " / 800").label)
     }
 }

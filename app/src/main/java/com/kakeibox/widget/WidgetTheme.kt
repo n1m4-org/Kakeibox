@@ -56,6 +56,47 @@ enum class BudgetWidgetLayout {
     STACK,
 }
 
+/** 縦1マスで、アイコンの横に名前を出せる幅か（3マス幅以上） */
+fun DpSize.rowShowsLabel(): Boolean = width >= 175.dp
+
+/** 文字列のおおよその幅（dp）。全角は文字サイズと同じ、数字・記号はその割合で見積もる */
+internal fun estimateTextWidth(text: String, sp: Float): Float =
+    text.sumOf { c ->
+        when {
+            c.code >= 0x2E80 || c == '…' -> 1.0
+            c.isDigit() -> 0.56
+            c == ',' || c == '.' || c == ' ' -> 0.28
+            c == '-' || c == '/' -> 0.35
+            else -> 0.6
+        }
+    }.toFloat() * sp
+
+/** 名前付きの1段で何を出すか */
+data class RowFit(val label: String, val showSuffix: Boolean)
+
+/**
+ * 名前付きの1段（アイコン・名前・金額・＋）で、名前を優先して収める。
+ * 入り切らなければまず「/ 予算」を省き、それでも足りなければ名前を「…」で詰める。
+ *
+ * @param available アイコン・＋・余白を除いた、名前と金額に使える幅（dp）
+ */
+fun fitRow(available: Float, label: String, amount: String, suffix: String): RowFit {
+    val amountWidth = estimateTextWidth(amount, ROW_AMOUNT_SP)
+    val labelWidth = estimateTextWidth(label, ROW_LABEL_SP)
+    if (labelWidth + amountWidth + estimateTextWidth(suffix, ROW_SUFFIX_SP) <= available) return RowFit(label, true)
+    if (labelWidth + amountWidth <= available) return RowFit(label, false)
+    var cut = label
+    while (cut.length > 1 && estimateTextWidth("$cut…", ROW_LABEL_SP) + amountWidth > available) cut = cut.dropLast(1)
+    // 詰めても短くならない（2文字の名前など）ときはそのまま
+    val shortened = "$cut…"
+    return RowFit(if (cut == label || estimateTextWidth(shortened, ROW_LABEL_SP) >= labelWidth) label else shortened, false)
+}
+
+/** 名前付きの1段の文字サイズ（sp） */
+const val ROW_LABEL_SP = 13f
+const val ROW_AMOUNT_SP = 16f
+const val ROW_SUFFIX_SP = 11f
+
 /** 積み上げバーの中身。fills は各段の割合（0〜1）、more は最後の段が表す本数（収まったときは 0） */
 data class StackedBars(val fills: List<Float>, val more: Int)
 
