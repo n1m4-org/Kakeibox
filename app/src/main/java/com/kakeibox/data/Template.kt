@@ -23,7 +23,7 @@ data class Template(
     val payment: PaymentMethod,
     val memo: String = "",
 ) {
-    val categoryEnum: Category get() = Category.fromName(category)
+    val categoryEnum: Category get() = Category.fromName(category, type)
 
     /** テンプレートから記録を作る。amount=0 のテンプレートは [enteredAmount] を使う */
     fun toTransaction(date: LocalDate = LocalDate.now(), enteredAmount: Long = 0): Transaction = Transaction(
@@ -55,6 +55,9 @@ interface TemplateDao {
 
     @Query("SELECT * FROM templates ORDER BY id")
     suspend fun all(): List<Template>
+
+    @Query("SELECT COUNT(*) FROM templates WHERE category = :key")
+    suspend fun countByCategory(key: String): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(t: Template): Long

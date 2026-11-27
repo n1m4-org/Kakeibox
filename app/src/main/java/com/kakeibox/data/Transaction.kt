@@ -18,7 +18,7 @@ data class Transaction(
     @ColumnInfo(defaultValue = "CASH") val payment: PaymentMethod = PaymentMethod.CASH,
 ) {
     val localDate: LocalDate get() = LocalDate.ofEpochDay(date)
-    val categoryEnum: Category get() = Category.fromName(category)
+    val categoryEnum: Category get() = Category.fromName(category, type)
 }
 
 /** クイック入力（今日・支出・メモなし）の記録 */

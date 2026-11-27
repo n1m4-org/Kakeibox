@@ -183,22 +183,3 @@ class DailyBudgetWidget : GlanceAppWidget() {
 class DailyBudgetWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = DailyBudgetWidget()
 }
-
-/** ウィジェット用のアイコン（アプリ内と同じ線画アイコンのベクター版） */
-val BudgetTarget.widgetIcon: Int
-    get() = when (this) {
-        BudgetTarget.All -> R.drawable.ic_budget_all
-        is BudgetTarget.Of -> when (category) {
-            Category.FOOD -> R.drawable.ic_budget_food
-            Category.DAILY -> R.drawable.ic_budget_daily
-            Category.TRANSPORT -> R.drawable.ic_budget_transport
-            Category.HOUSING -> R.drawable.ic_budget_housing
-            Category.UTILITY -> R.drawable.ic_budget_utility
-            Category.COMMUNICATION -> R.drawable.ic_budget_communication
-            Category.SOCIAL -> R.drawable.ic_budget_social
-            Category.HOBBY -> R.drawable.ic_budget_hobby
-            Category.MEDICAL -> R.drawable.ic_budget_medical
-            Category.CLOTHES -> R.drawable.ic_budget_clothes
-            else -> R.drawable.ic_budget_other_expense
-        }
-    }

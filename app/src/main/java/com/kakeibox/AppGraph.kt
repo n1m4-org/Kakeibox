@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.glance.appwidget.updateAll
 import com.kakeibox.data.AppDatabase
 import com.kakeibox.data.BudgetStore
+import com.kakeibox.data.CategoryStore
 import com.kakeibox.data.RecurringDao
 import com.kakeibox.data.SettingsStore
 import com.kakeibox.notify.BudgetAlerts
@@ -37,8 +38,17 @@ object AppGraph {
 
     fun recurringDao(context: Context): RecurringDao = AppDatabase.get(context.applicationContext).recurringDao()
 
+    @Volatile private var categories: CategoryStore? = null
+
+    /** カテゴリの設定（予算などより先に読み込む） */
+    fun categoryStore(context: Context): CategoryStore =
+        categories ?: synchronized(this) {
+            categories ?: CategoryStore(context.applicationContext).also { categories = it }
+        }
+
     fun budgetStore(context: Context): BudgetStore =
         budget ?: synchronized(this) {
+            categoryStore(context)
             budget ?: BudgetStore(context.applicationContext).also { budget = it }
         }
 

@@ -17,6 +17,8 @@ class KakeiboxApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // カテゴリ（追加・並び順・非表示）を最初に読み込む
+        AppGraph.categoryStore(this)
         // 0:00 や端末の日付変更で「今日」を切り替え、ウィジェットも描き直す
         Today.start(this, appScope, onDateChanged = { appScope.launch { AppGraph.refreshWidgets(this@KakeiboxApplication) } })
         MidnightRefresh.schedule(this)

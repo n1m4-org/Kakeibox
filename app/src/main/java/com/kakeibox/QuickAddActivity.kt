@@ -58,7 +58,7 @@ class QuickAddActivity : ComponentActivity() {
                         templates = templates,
                         onTemplate = { t, entered -> saveAndFinish(t.toTransaction(enteredAmount = entered)) },
                         presetCategory = intent.getStringExtra(EXTRA_CATEGORY)
-                            ?.let { name -> Category.of(TxType.EXPENSE).firstOrNull { it.name == name } },
+                            ?.let { name -> Category.find(name)?.takeIf { it.type == TxType.EXPENSE } },
                         onDetail = {
                             startActivity(MainActivity.openEditIntent(this@QuickAddActivity))
                             finish()

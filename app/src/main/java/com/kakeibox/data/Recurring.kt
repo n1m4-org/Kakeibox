@@ -31,7 +31,7 @@ data class Recurring(
     val processedUntil: Long? = null,
     val enabled: Boolean = true,
 ) {
-    val categoryEnum: Category get() = Category.fromName(category)
+    val categoryEnum: Category get() = Category.fromName(category, type)
 
     fun toTransaction(date: LocalDate) = Transaction(
         type = type,
@@ -78,6 +78,9 @@ interface RecurringDao {
 
     @Query("SELECT * FROM recurring")
     suspend fun all(): List<Recurring>
+
+    @Query("SELECT COUNT(*) FROM recurring WHERE category = :key")
+    suspend fun countByCategory(key: String): Int
 
     @Query("SELECT * FROM recurring WHERE id = :id")
     suspend fun find(id: Long): Recurring?

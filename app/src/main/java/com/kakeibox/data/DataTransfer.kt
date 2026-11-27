@@ -12,7 +12,7 @@ import java.nio.charset.Charset
 /** CSVの書き出し・取り込みと、バックアップの保存・復元（ファイルはSAFで選ぶ） */
 object DataTransfer {
     /** バックアップに含める SharedPreferences（予算・設定） */
-    private val PREF_FILES = listOf("kakeibox", "kakeibox_settings")
+    private val PREF_FILES = listOf("kakeibox", "kakeibox_settings", CategoryStore.PREFS)
 
     suspend fun exportCsv(context: Context, uri: Uri): Int = withContext(Dispatchers.IO) {
         val txs = AppGraph.repository(context).all()
@@ -72,6 +72,7 @@ object DataTransfer {
                 editor.commit()
             }
         }
+        AppGraph.categoryStore(app).reload()
         AppGraph.budgetStore(app).reload()
         AppGraph.settingsStore(app).reload()
         Reminder.apply(app)

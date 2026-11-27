@@ -18,8 +18,8 @@ sealed interface BudgetTarget {
     }
 
     companion object {
-        /** 選択肢の並び：全体 → 支出カテゴリ */
-        val entries: List<BudgetTarget> = listOf(All) + Category.of(TxType.EXPENSE).map { Of(it) }
+        /** 選択肢の並び：全体 → 支出カテゴリ（追加・非表示のカテゴリも含む） */
+        val entries: List<BudgetTarget> get() = listOf(All) + Category.all(TxType.EXPENSE).map { Of(it) }
 
         fun fromKey(key: String?): BudgetTarget = entries.firstOrNull { it.key == key } ?: All
     }

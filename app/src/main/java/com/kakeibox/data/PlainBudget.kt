@@ -31,7 +31,7 @@ data class Week(val start: LocalDate) {
 
 /** カテゴリ別の支出ランキング（多い順、上位 top 件） */
 fun categoryRanking(spent: List<DayCategoryTotal>, top: Int): List<Pair<Category, Long>> =
-    spent.groupBy { Category.fromName(it.category) }
+    spent.groupBy { Category.fromName(it.category, TxType.EXPENSE) }
         .map { (c, list) -> c to list.sumOf { it.total } }
         .filter { it.second > 0 }
         .sortedByDescending { it.second }

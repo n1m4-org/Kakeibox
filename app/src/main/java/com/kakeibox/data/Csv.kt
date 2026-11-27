@@ -75,7 +75,7 @@ object Csv {
     }
 
     private fun parseCategory(s: String, type: TxType): Category? =
-        Category.of(type).firstOrNull { it.label == s || it.name == s }
+        Category.all(type).firstOrNull { it.label == s || it.name == s }
 
     private fun parsePayment(s: String): PaymentMethod? =
         PaymentMethod.entries.firstOrNull { it.label == s || it.name == s }
