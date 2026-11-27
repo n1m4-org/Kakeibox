@@ -57,7 +57,6 @@ import com.kakeibox.data.Today
 import com.kakeibox.data.computeDailyBudget
 import com.kakeibox.data.spentByDay
 import com.kakeibox.ui.color
-import com.kakeibox.ui.monthlyBudgetLabel
 import com.kakeibox.ui.theme.ExpenseColor
 import com.kakeibox.ui.theme.WarningColor
 import com.kakeibox.ui.signedYen
@@ -91,13 +90,13 @@ class DailyBudgetWidget : GlanceAppWidget() {
             val status = settings[target]?.let {
                 computeDailyBudget(it.amount, LocalDate.ofEpochDay(it.since), today, spent.spentByDay(target), period.start)
             }
-            GlanceTheme(colors = WidgetColors) { Content(context, target, status, period) }
+            GlanceTheme(colors = WidgetColors) { Content(context, target, status) }
         }
     }
 
     @Composable
-    private fun Content(context: Context, target: BudgetTarget, status: DailyBudgetStatus?, period: Period) {
-        val sub = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp)
+    private fun Content(context: Context, target: BudgetTarget, status: DailyBudgetStatus?) {
+        val sub = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 11.sp)
         val tapAction = if (status == null) {
             actionStartActivity(MainActivity.openBudgetsIntent(context))
         } else {
@@ -107,20 +106,21 @@ class DailyBudgetWidget : GlanceAppWidget() {
             modifier = GlanceModifier.fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
                 .cornerRadius(16.dp)
-                .padding(12.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
                 .clickable(tapAction),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // アイコン・対象の名前・＋
             Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Image(
                     provider = ImageProvider(target.widgetIcon),
                     contentDescription = null,
                     colorFilter = ColorFilter.tint(ColorProvider(Color(target.color))),
-                    modifier = GlanceModifier.size(20.dp),
+                    modifier = GlanceModifier.size(18.dp),
                 )
                 Spacer(GlanceModifier.width(6.dp))
                 Text(
-                    "${target.label}の予算",
+                    target.label,
                     style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium),
                     modifier = GlanceModifier.defaultWeight(),
                     maxLines = 1,
@@ -133,31 +133,33 @@ class DailyBudgetWidget : GlanceAppWidget() {
                         (target as? BudgetTarget.Of)?.let { actionParametersOf(CATEGORY_PARAM to it.category.name) }
                             ?: actionParametersOf(),
                     ),
-                    modifier = GlanceModifier.size(36.dp),
+                    modifier = GlanceModifier.size(32.dp),
                 )
             }
 
             if (status == null) {
-                Text(
-                    "1日の予算が未設定です\nタップして設定",
-                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 14.sp),
-                )
+                Text("未設定（タップで設定）", style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp))
                 return@Column
             }
 
+            // 今日の残り（超過はマイナス・赤）
             val over = status.remaining < 0
-            Text(
-                if (over) "${yen(-status.remaining)} オーバー" else "残り ${yen(status.remaining)}",
-                style = TextStyle(
-                    color = if (over) ColorProvider(ExpenseColor) else GlanceTheme.colors.onSurface,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
-            )
-            Spacer(GlanceModifier.height(6.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text("残り ", style = sub)
+                Text(
+                    signedYen(status.remaining),
+                    style = TextStyle(
+                        color = if (over) ColorProvider(ExpenseColor) else GlanceTheme.colors.onSurface,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    maxLines = 1,
+                )
+            }
+            Spacer(GlanceModifier.height(4.dp))
             LinearProgressIndicator(
                 progress = status.ratio.coerceIn(0f, 1f),
-                modifier = GlanceModifier.fillMaxWidth().height(8.dp),
+                modifier = GlanceModifier.fillMaxWidth().height(6.dp),
                 color = when {
                     status.ratio >= 1f -> ColorProvider(ExpenseColor)
                     status.ratio >= 0.8f -> ColorProvider(WarningColor)
@@ -165,9 +167,9 @@ class DailyBudgetWidget : GlanceAppWidget() {
                 },
                 backgroundColor = GlanceTheme.colors.surfaceVariant,
             )
-            Spacer(GlanceModifier.height(6.dp))
-            Text("使用 ${yen(status.spentToday)} / ${signedYen(status.todayBudget)}", style = sub, maxLines = 1)
-            Text(monthlyBudgetLabel(status.daily, period), style = sub, maxLines = 1)
+            Spacer(GlanceModifier.height(4.dp))
+            // 使用額 / 今日の予算（例：¥900 / 2,400）
+            Text(usageLabel(status.spentToday, status.todayBudget), style = sub, maxLines = 1)
         }
     }
 
@@ -183,3 +185,7 @@ class DailyBudgetWidget : GlanceAppWidget() {
 class DailyBudgetWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = DailyBudgetWidget()
 }
+
+/** 「¥900 / 2,400」（今日の予算がマイナスなら「¥900 / -300」） */
+internal fun usageLabel(spent: Long, budget: Long): String =
+    "${yen(spent)} / ${if (budget < 0) "-" else ""}${String.format(java.util.Locale.JAPAN, "%,d", kotlin.math.abs(budget))}"

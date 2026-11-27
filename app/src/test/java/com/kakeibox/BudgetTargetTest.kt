@@ -71,3 +71,12 @@ class BudgetTargetTest {
         assertEquals(-3_000L, result[2].status.carryover)
     }
 }
+
+class WidgetLabelTest {
+    @org.junit.Test
+    fun usageLabelIsShort() {
+        org.junit.Assert.assertEquals("¥0 / 1,000", com.kakeibox.widget.usageLabel(0, 1_000))
+        org.junit.Assert.assertEquals("¥900 / 2,400", com.kakeibox.widget.usageLabel(900, 2_400))
+        org.junit.Assert.assertEquals("¥1,200 / -300", com.kakeibox.widget.usageLabel(1_200, -300))
+    }
+}
