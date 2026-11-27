@@ -73,7 +73,9 @@ private const val MILLIS_PER_DAY = 86_400_000L
 fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
     var loaded by rememberSaveable { mutableStateOf(txId == null) }
     var type by rememberSaveable { mutableStateOf(TxType.EXPENSE) }
-    var category by rememberSaveable { mutableStateOf(Category.FOOD) }
+    // Category は画面の状態保存（rememberSaveable）に入れられないので、key（文字列）で保存する
+    var categoryKey by rememberSaveable { mutableStateOf(Category.FOOD.key) }
+    val category = Category.fromName(categoryKey, type)
     var amountText by rememberSaveable { mutableStateOf("") }
     var epochDay by rememberSaveable { mutableStateOf(LocalDate.now().toEpochDay()) }
     var memo by rememberSaveable { mutableStateOf("") }
@@ -90,7 +92,7 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
         if (txId != null && !loaded) {
             vm.find(txId)?.let { tx ->
                 type = tx.type
-                category = tx.categoryEnum
+                categoryKey = tx.categoryEnum.key
                 amountText = tx.amount.toString()
                 epochDay = tx.date
                 memo = tx.memo
@@ -140,7 +142,7 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
             TypeToggle(type, onChange = {
                 if (it != type) {
                     type = it
-                    category = Category.of(it).first()
+                    categoryKey = Category.of(it).first().key
                 }
             })
 
@@ -160,7 +162,7 @@ fun EditScreen(vm: MainViewModel, txId: Long?, onDone: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            CategoryChips(type, category, onSelect = { category = it })
+            CategoryChips(type, category, onSelect = { categoryKey = it.key })
 
             PaymentChips(type, payment, onSelect = { payment = it })
 

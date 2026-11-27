@@ -152,7 +152,9 @@ fun RecurringEditScreen(vm: MainViewModel, id: Long?, onDone: () -> Unit) {
     var enabled by rememberSaveable { mutableStateOf(true) }
     var name by rememberSaveable { mutableStateOf("") }
     var type by rememberSaveable { mutableStateOf(TxType.EXPENSE) }
-    var category by rememberSaveable { mutableStateOf(Category.HOUSING) }
+    // Category は画面の状態保存（rememberSaveable）に入れられないので、key（文字列）で保存する
+    var categoryKey by rememberSaveable { mutableStateOf(Category.HOUSING.key) }
+    val category = Category.fromName(categoryKey, type)
     var amountText by rememberSaveable { mutableStateOf("") }
     var payment by rememberSaveable { mutableStateOf(vm.settings.value.defaultPayment) }
     var day by rememberSaveable { mutableStateOf(LocalDate.now().dayOfMonth) }
@@ -165,7 +167,7 @@ fun RecurringEditScreen(vm: MainViewModel, id: Long?, onDone: () -> Unit) {
         if (id != null && !loaded) {
             vm.findRecurring(id)?.let { r ->
                 originalId = r.id; startDate = r.startDate; processedUntil = r.processedUntil; enabled = r.enabled
-                name = r.name; type = r.type; category = r.categoryEnum; amountText = r.amount.toString()
+                name = r.name; type = r.type; categoryKey = r.categoryEnum.key; amountText = r.amount.toString()
                 payment = r.payment; day = r.dayOfMonth; memo = r.memo
             }
             loaded = true
@@ -190,7 +192,7 @@ fun RecurringEditScreen(vm: MainViewModel, id: Long?, onDone: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             TypeToggle(type, onChange = {
-                if (it != type) { type = it; category = Category.of(it).first() }
+                if (it != type) { type = it; categoryKey = Category.of(it).first().key }
             })
             OutlinedTextField(
                 value = name, onValueChange = { name = it.take(20); error = false },
@@ -216,7 +218,7 @@ fun RecurringEditScreen(vm: MainViewModel, id: Long?, onDone: () -> Unit) {
                     }
                 }
             }
-            CategoryChips(type, category, onSelect = { category = it })
+            CategoryChips(type, category, onSelect = { categoryKey = it.key })
             PaymentChips(type, payment, onSelect = { payment = it })
             OutlinedTextField(
                 value = memo, onValueChange = { memo = it.take(100) },

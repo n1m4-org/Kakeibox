@@ -83,7 +83,9 @@ fun QuickAddContent(
 ) {
     var amount by rememberSaveable { mutableStateOf("") }
     // 「変更」で外せる（外すと従来どおりカテゴリ一覧から選ぶ）
-    var preset by rememberSaveable(presetCategory) { mutableStateOf(presetCategory) }
+    // Category は画面の状態保存（rememberSaveable）に入れられないので、key（文字列）で保存する
+    var presetKey by rememberSaveable(presetCategory?.key) { mutableStateOf(presetCategory?.key) }
+    val preset = presetKey?.let { Category.find(it) }
     var payment by rememberSaveable(defaultPayment) { mutableStateOf(defaultPayment) }
     var error by remember { mutableStateOf(false) }
     val shake = remember { Animatable(0f) }
@@ -110,7 +112,7 @@ fun QuickAddContent(
                 CategoryBadge(c, size = 36.dp)
                 Spacer(Modifier.width(10.dp))
                 Text(c.label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                TextButton(onClick = { preset = null }) { Text("変更") }
+                TextButton(onClick = { presetKey = null }) { Text("変更") }
             }
         }
 
