@@ -4,15 +4,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.glance.color.ColorProvider
-import androidx.glance.material3.ColorProviders
 import androidx.glance.unit.ColorProvider
-import com.kakeibox.ui.theme.DarkColors
-import com.kakeibox.ui.theme.LightColors
-import com.kakeibox.ui.theme.Palette
-import com.kakeibox.ui.theme.darken
 
-/** ウィジェットの面の色はアプリと同じパレットの配色（端末のライト／ダークに追従） */
-val WidgetColors = ColorProviders(light = LightColors, dark = DarkColors)
 
 /**
  * ウィジェットの文字・バーの色。ホーム画面の上でも読みやすいよう、ダークでは白と明るい赤などを使う。
@@ -28,7 +21,7 @@ object WidgetText {
     /** バー：80%超 */
     val warn: ColorProvider = ColorProvider(day = Color(0xFFE0A100), night = Color(0xFFFFD54F))
     /** バー：通常 */
-    val ok: ColorProvider = ColorProvider(day = Palette.Teal.darken(0.1f), night = Color(0xFF7FD1C1))
+    val ok: ColorProvider = ColorProvider(day = Color(0xFF00897B), night = Color(0xFF7FD1C1))
     /** バーの下地 */
     val track: ColorProvider = ColorProvider(day = Color.Black.copy(alpha = 0.12f), night = Color.White.copy(alpha = 0.2f))
 

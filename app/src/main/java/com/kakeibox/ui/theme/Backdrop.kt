@@ -48,7 +48,26 @@ import kotlin.math.roundToInt
 fun backgroundFile(context: Context) = File(context.filesDir, "background.jpg")
 
 /** 背景の見た目の設定 */
-data class BackgroundSpec(val version: Long, val blur: Int, val brightness: Int, val dark: Boolean)
+data class BackgroundSpec(
+    val version: Long,
+    val blur: Int,
+    val brightness: Int,
+    val dark: Boolean,
+    /** 既定のグラデーションの色（上・下・円3つ）。今の配色（壁紙の色）から作る */
+    val gradientColors: List<Int> = defaultGradientColors(dark),
+)
+
+/** 配色がないとき（テストなど）のグラデーションの色 */
+fun defaultGradientColors(dark: Boolean): List<Int> = gradientColorsOf(if (dark) DarkColors else LightColors, dark)
+
+/** 配色からグラデーションの色を作る */
+fun gradientColorsOf(scheme: androidx.compose.material3.ColorScheme, dark: Boolean): List<Int> = listOf(
+    scheme.background,
+    if (dark) scheme.surfaceContainerHighest else scheme.primaryContainer.lighten(0.35f),
+    scheme.tertiaryContainer,
+    scheme.primaryContainer,
+    scheme.secondaryContainer,
+).map { it.toArgb() }
 
 /** 描画済みの背景（ページ用と、アクリル用の強くぼかした小さい版） */
 @Stable
@@ -98,7 +117,7 @@ object BackdropRenderer {
         if (spec.version != 0L) {
             loadCropped(backgroundFile(context), w, h)?.let { return it }
         }
-        return gradient(w, h, spec.dark)
+        return gradient(w, h, spec.dark, spec.gradientColors)
     }
 
     private fun loadCropped(file: File, w: Int, h: Int): Bitmap? {
@@ -120,29 +139,25 @@ object BackdropRenderer {
         return out
     }
 
-    /** パレットの柔らかいグラデーション＋淡い円 */
-    fun gradient(w: Int, h: Int, dark: Boolean): Bitmap {
+    /** 配色（壁紙の色）の柔らかいグラデーション＋淡い円。colors = 上・下・円3つ */
+    fun gradient(w: Int, h: Int, dark: Boolean, colors: List<Int> = defaultGradientColors(dark)): Bitmap {
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val (top, bottom) = if (dark) {
-            Palette.Teal.darken(0.78f) to Palette.Rose.darken(0.8f)
-        } else {
-            Palette.Blush.lighten(0.2f) to Palette.Sage.lighten(0.35f)
-        }
-        paint.shader = LinearGradient(0f, 0f, w * 0.4f, h.toFloat(), top.toArgb(), bottom.toArgb(), Shader.TileMode.CLAMP)
+        paint.shader = LinearGradient(0f, 0f, w * 0.4f, h.toFloat(), colors[0], colors[1], Shader.TileMode.CLAMP)
         c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
-        val blobAlpha = if (dark) 0.35f else 0.55f
-        fun blob(cx: Float, cy: Float, r: Float, color: Color) {
+        val blobAlpha = if (dark) 0.45f else 0.6f
+        fun blob(cx: Float, cy: Float, r: Float, color: Int) {
+            val col = Color(color)
             paint.shader = RadialGradient(
                 cx * w, cy * h, r * max(w, h),
-                color.copy(alpha = blobAlpha).toArgb(), color.copy(alpha = 0f).toArgb(), Shader.TileMode.CLAMP,
+                col.copy(alpha = blobAlpha).toArgb(), col.copy(alpha = 0f).toArgb(), Shader.TileMode.CLAMP,
             )
             c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
         }
-        blob(0.85f, 0.12f, 0.45f, if (dark) Palette.Rose.darken(0.3f) else Palette.Petal)
-        blob(0.1f, 0.55f, 0.5f, if (dark) Palette.Teal.darken(0.3f) else Palette.Sage)
-        blob(0.75f, 0.9f, 0.4f, if (dark) Palette.Sage.darken(0.5f) else Palette.Rose.lighten(0.3f))
+        blob(0.85f, 0.12f, 0.45f, colors[2])
+        blob(0.1f, 0.55f, 0.5f, colors[3])
+        blob(0.75f, 0.9f, 0.4f, colors[4])
         return bmp
     }
 
@@ -181,7 +196,10 @@ fun KakeiboxBackground(preset: Backdrop? = null, content: @Composable () -> Unit
         backdrop.rootSize = size
         if (preset == null) {
             val settings by AppGraph.settingsStore(context).settings.collectAsState()
-            val spec = BackgroundSpec(settings.backgroundVersion, settings.backgroundBlur, settings.backgroundBrightness, dark)
+            val spec = BackgroundSpec(
+                settings.backgroundVersion, settings.backgroundBlur, settings.backgroundBrightness, dark,
+                gradientColorsOf(MaterialTheme.colorScheme, dark),
+            )
             LaunchedEffect(spec, size) {
                 // スライダー操作中は、指が止まってから描き直す
                 if (backdrop.page != null) delay(80)
