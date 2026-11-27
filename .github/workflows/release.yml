@@ -54,6 +54,11 @@ jobs:
 
           if ! keytool -list -keystore "$KS" -storepass "$STORE_PASS" > "$RUNNER_TEMP/ks.txt" 2>&1; then
             echo "::error::鍵ファイルを開けません（KEYSTORE_BASE64 か KEYSTORE_PASSWORD が違います）"
+            # 秘密の値そのものは出さず、長さとハッシュだけ出す（手元の鍵ファイルと比べる用）
+            echo "KEYSTORE_BASE64 の文字数（空白除く）: $(printf '%s' "$KEYSTORE_BASE64" | tr -d ' \r\n\t' | wc -c)"
+            echo "鍵ファイルのサイズ: $(stat -c %s "$KS") バイト / SHA-256 先頭: $(sha256sum "$KS" | cut -c1-12)"
+            echo "KEYSTORE_PASSWORD の文字数: ${#STORE_PASS}"
+            grep -iE 'error|exception' "$RUNNER_TEMP/ks.txt" | grep -v 'Picked up' || true
             exit 1
           fi
           # 別名が一致しなければ、鍵ファイル内の唯一の別名を使う
