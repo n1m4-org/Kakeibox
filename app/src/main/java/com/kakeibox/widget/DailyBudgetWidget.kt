@@ -22,6 +22,8 @@ import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.LocalSize
+import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.CircleIconButton
@@ -57,8 +59,6 @@ import com.kakeibox.data.Today
 import com.kakeibox.data.computeDailyBudget
 import com.kakeibox.data.spentByDay
 import com.kakeibox.ui.color
-import com.kakeibox.ui.theme.ExpenseColor
-import com.kakeibox.ui.theme.WarningColor
 import com.kakeibox.ui.signedYen
 import com.kakeibox.ui.yen
 import java.time.LocalDate
@@ -70,6 +70,9 @@ import java.time.LocalDate
  */
 class DailyBudgetWidget : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+
+    /** 縦1マスと2マス以上で配置を切り替える */
+    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(WIDGET_SMALL, WIDGET_TALL))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repo = AppGraph.repository(context)
@@ -96,78 +99,105 @@ class DailyBudgetWidget : GlanceAppWidget() {
 
     @Composable
     private fun Content(context: Context, target: BudgetTarget, status: DailyBudgetStatus?) {
-        val sub = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 11.sp)
+        val compact = LocalSize.current.isCompact()
         val tapAction = if (status == null) {
             actionStartActivity(MainActivity.openBudgetsIntent(context))
         } else {
             actionStartActivity<MainActivity>()
         }
+        // ＋：カテゴリのウィジェットなら、そのカテゴリを選んだ状態でクイック入力を開く
+        val addAction = actionStartActivity<QuickAddActivity>(
+            (target as? BudgetTarget.Of)?.let { actionParametersOf(CATEGORY_PARAM to it.category.name) } ?: actionParametersOf(),
+        )
+        val icon = @Composable {
+            Image(
+                provider = ImageProvider(target.widgetIcon),
+                contentDescription = target.label,
+                colorFilter = ColorFilter.tint(ColorProvider(Color(target.color))),
+                modifier = GlanceModifier.size(18.dp),
+            )
+        }
+        val addButton = @Composable {
+            CircleIconButton(
+                imageProvider = ImageProvider(R.drawable.ic_add),
+                contentDescription = "支出を追加",
+                onClick = addAction,
+                modifier = GlanceModifier.size(if (compact) 28.dp else 32.dp),
+            )
+        }
+
         Column(
             modifier = GlanceModifier.fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
                 .cornerRadius(16.dp)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = 12.dp, vertical = if (compact) 4.dp else 8.dp)
                 .clickable(tapAction),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // アイコン・対象の名前・＋
-            Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    provider = ImageProvider(target.widgetIcon),
-                    contentDescription = null,
-                    colorFilter = ColorFilter.tint(ColorProvider(Color(target.color))),
-                    modifier = GlanceModifier.size(18.dp),
-                )
-                Spacer(GlanceModifier.width(6.dp))
-                Text(
-                    target.label,
-                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                    modifier = GlanceModifier.defaultWeight(),
-                    maxLines = 1,
-                )
-                CircleIconButton(
-                    imageProvider = ImageProvider(R.drawable.ic_add),
-                    contentDescription = "支出を追加",
-                    // カテゴリのウィジェットなら、そのカテゴリを選んだ状態でクイック入力を開く
-                    onClick = actionStartActivity<QuickAddActivity>(
-                        (target as? BudgetTarget.Of)?.let { actionParametersOf(CATEGORY_PARAM to it.category.name) }
-                            ?: actionParametersOf(),
-                    ),
-                    modifier = GlanceModifier.size(32.dp),
-                )
-            }
-
-            if (status == null) {
-                Text("未設定（タップで設定）", style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp))
+            if (compact) {
+                // 縦1マス：アイコン・残り / 予算・＋ の1行と、細いバー
+                Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    icon()
+                    Spacer(GlanceModifier.width(6.dp))
+                    if (status == null) {
+                        Text("未設定", style = TextStyle(color = WidgetText.sub, fontSize = 13.sp), modifier = GlanceModifier.defaultWeight())
+                    } else {
+                        Row(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.Bottom) { Amount(status, 16) }
+                    }
+                    addButton()
+                }
+                if (status != null) {
+                    Spacer(GlanceModifier.height(3.dp))
+                    Bar(status, 4)
+                }
                 return@Column
             }
 
-            // 今日の残り / 今日の予算（例：¥1,500 / 2,400。超過はマイナス・赤）
-            val over = status.remaining < 0
-            Row(verticalAlignment = Alignment.Bottom) {
+            // 2マス以上：アイコン・名前・＋／残り / 予算／バー
+            Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                icon()
+                Spacer(GlanceModifier.width(6.dp))
                 Text(
-                    signedYen(status.remaining),
-                    style = TextStyle(
-                        color = if (over) ColorProvider(ExpenseColor) else GlanceTheme.colors.onSurface,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
+                    target.label,
+                    style = TextStyle(color = WidgetText.main, fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                    modifier = GlanceModifier.defaultWeight(),
                     maxLines = 1,
                 )
-                Text(budgetSuffix(status.todayBudget), style = sub, maxLines = 1)
+                addButton()
             }
+            if (status == null) {
+                Text("未設定（タップで設定）", style = TextStyle(color = WidgetText.sub, fontSize = 13.sp))
+                return@Column
+            }
+            Row(verticalAlignment = Alignment.Bottom) { Amount(status, 20) }
             Spacer(GlanceModifier.height(4.dp))
-            LinearProgressIndicator(
-                progress = status.ratio.coerceIn(0f, 1f),
-                modifier = GlanceModifier.fillMaxWidth().height(6.dp),
-                color = when {
-                    status.ratio >= 1f -> ColorProvider(ExpenseColor)
-                    status.ratio >= 0.8f -> ColorProvider(WarningColor)
-                    else -> GlanceTheme.colors.primary
-                },
-                backgroundColor = GlanceTheme.colors.surfaceVariant,
-            )
+            Bar(status, 6)
         }
+    }
+
+    /** 残り（大・超過は赤）＋「 / 今日の予算」（小） */
+    @Composable
+    private fun Amount(status: DailyBudgetStatus, size: Int) {
+        Text(
+            signedYen(status.remaining),
+            style = TextStyle(
+                color = if (status.remaining < 0) WidgetText.over else WidgetText.main,
+                fontSize = size.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+            maxLines = 1,
+        )
+        Text(budgetSuffix(status.todayBudget), style = TextStyle(color = WidgetText.sub, fontSize = 11.sp), maxLines = 1)
+    }
+
+    @Composable
+    private fun Bar(status: DailyBudgetStatus, height: Int) {
+        LinearProgressIndicator(
+            progress = status.ratio.coerceIn(0f, 1f),
+            modifier = GlanceModifier.fillMaxWidth().height(height.dp),
+            color = WidgetText.bar(status.ratio),
+            backgroundColor = WidgetText.track,
+        )
     }
 
     companion object {

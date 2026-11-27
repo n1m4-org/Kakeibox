@@ -14,6 +14,13 @@ import androidx.glance.GlanceTheme
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.ImageProvider
+import androidx.glance.LocalSize
+import androidx.glance.appwidget.SizeMode
+import androidx.glance.appwidget.components.CircleIconButton
+import androidx.glance.layout.Row
+import androidx.glance.layout.size
+import com.kakeibox.R
 import androidx.glance.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
@@ -38,6 +45,9 @@ import java.time.LocalDate
 
 /** 今月の支出合計と「支出を追加」ボタンを表示するホーム画面ウィジェット */
 class KakeiboxWidget : GlanceAppWidget() {
+    /** 縦1マスと2マス以上で配置を切り替える */
+    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(WIDGET_SMALL, WIDGET_TALL))
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repo = AppGraph.repository(context)
         val settingsStore = AppGraph.settingsStore(context)
@@ -55,23 +65,38 @@ class KakeiboxWidget : GlanceAppWidget() {
 
     @Composable
     private fun Content(period: Period, total: Long) {
+        val compact = LocalSize.current.isCompact()
+        val monthLabel = if (period.startDay == 1) "${period.start.monthValue}月" else "今月"
         Column(
             modifier = GlanceModifier.fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
                 .cornerRadius(16.dp)
-                .padding(12.dp)
+                .padding(horizontal = 12.dp, vertical = if (compact) 4.dp else 10.dp)
                 .clickable(actionStartActivity<MainActivity>()),
             verticalAlignment = Alignment.CenterVertically,
             horizontalAlignment = Alignment.Start,
         ) {
-            Text(
-                "${if (period.startDay == 1) "${period.start.monthValue}月" else "今月"}の支出",
-                style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
-            )
-            Text(
-                yen(total),
-                style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold),
-            )
+            if (compact) {
+                // 縦1マス：「11月 ¥3,679」と＋
+                Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("$monthLabel ", style = TextStyle(color = WidgetText.sub, fontSize = 12.sp), maxLines = 1)
+                    Text(
+                        yen(total),
+                        style = TextStyle(color = WidgetText.main, fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        modifier = GlanceModifier.defaultWeight(),
+                    )
+                    CircleIconButton(
+                        imageProvider = ImageProvider(R.drawable.ic_add),
+                        contentDescription = "支出を追加",
+                        onClick = actionStartActivity<QuickAddActivity>(),
+                        modifier = GlanceModifier.size(28.dp),
+                    )
+                }
+                return@Column
+            }
+            Text("${monthLabel}の支出", style = TextStyle(color = WidgetText.sub, fontSize = 12.sp))
+            Text(yen(total), style = TextStyle(color = WidgetText.main, fontSize = 22.sp, fontWeight = FontWeight.Bold))
             Spacer(GlanceModifier.height(8.dp))
             Button(
                 text = "＋ 支出を追加",

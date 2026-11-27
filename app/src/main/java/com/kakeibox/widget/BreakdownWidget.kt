@@ -65,7 +65,7 @@ class BreakdownWidget : GlanceAppWidget() {
 
     @Composable
     private fun Content(period: Period, total: Long, ranking: List<Pair<Category, Long>>) {
-        val sub = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 11.sp)
+        val sub = TextStyle(color = WidgetText.sub, fontSize = 11.sp)
         Column(
             GlanceModifier.fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
@@ -76,10 +76,10 @@ class BreakdownWidget : GlanceAppWidget() {
             Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "${if (period.startDay == 1) "${period.start.monthValue}月" else "今月"}の支出内訳",
-                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                    style = TextStyle(color = WidgetText.main, fontSize = 13.sp, fontWeight = FontWeight.Medium),
                     modifier = GlanceModifier.defaultWeight(),
                 )
-                Text(yen(total), style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold))
+                Text(yen(total), style = TextStyle(color = WidgetText.main, fontSize = 15.sp, fontWeight = FontWeight.Bold))
             }
             Spacer(GlanceModifier.height(6.dp))
             if (ranking.isEmpty()) {
@@ -98,14 +98,14 @@ class BreakdownWidget : GlanceAppWidget() {
                     Spacer(GlanceModifier.width(6.dp))
                     Column(GlanceModifier.defaultWeight()) {
                         Row(GlanceModifier.fillMaxWidth()) {
-                            Text(c.label, style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 12.sp), modifier = GlanceModifier.defaultWeight(), maxLines = 1)
+                            Text(c.label, style = TextStyle(color = WidgetText.main, fontSize = 12.sp), modifier = GlanceModifier.defaultWeight(), maxLines = 1)
                             Text("${yen(amount)}・${amount * 100 / total}%", style = sub)
                         }
                         LinearProgressIndicator(
                             progress = amount.toFloat() / total,
                             modifier = GlanceModifier.fillMaxWidth().height(4.dp),
                             color = color,
-                            backgroundColor = GlanceTheme.colors.surfaceVariant,
+                            backgroundColor = WidgetText.track,
                         )
                     }
                 }
