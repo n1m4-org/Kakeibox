@@ -142,10 +142,9 @@ class DailyBudgetWidget : GlanceAppWidget() {
                 return@Column
             }
 
-            // 今日の残り（超過はマイナス・赤）
+            // 今日の残り / 今日の予算（例：¥1,500 / 2,400。超過はマイナス・赤）
             val over = status.remaining < 0
             Row(verticalAlignment = Alignment.Bottom) {
-                Text("残り ", style = sub)
                 Text(
                     signedYen(status.remaining),
                     style = TextStyle(
@@ -155,6 +154,7 @@ class DailyBudgetWidget : GlanceAppWidget() {
                     ),
                     maxLines = 1,
                 )
+                Text(budgetSuffix(status.todayBudget), style = sub, maxLines = 1)
             }
             Spacer(GlanceModifier.height(4.dp))
             LinearProgressIndicator(
@@ -167,9 +167,6 @@ class DailyBudgetWidget : GlanceAppWidget() {
                 },
                 backgroundColor = GlanceTheme.colors.surfaceVariant,
             )
-            Spacer(GlanceModifier.height(4.dp))
-            // 使用額 / 今日の予算（例：¥900 / 2,400）
-            Text(usageLabel(status.spentToday, status.todayBudget), style = sub, maxLines = 1)
         }
     }
 
@@ -186,6 +183,6 @@ class DailyBudgetWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = DailyBudgetWidget()
 }
 
-/** 「¥900 / 2,400」（今日の予算がマイナスなら「¥900 / -300」） */
-internal fun usageLabel(spent: Long, budget: Long): String =
-    "${yen(spent)} / ${if (budget < 0) "-" else ""}${String.format(java.util.Locale.JAPAN, "%,d", kotlin.math.abs(budget))}"
+/** 残りの後ろに付ける「 / 2,400」（今日の予算がマイナスなら「 / -300」） */
+internal fun budgetSuffix(budget: Long): String =
+    " / ${if (budget < 0) "-" else ""}${String.format(java.util.Locale.JAPAN, "%,d", kotlin.math.abs(budget))}"
