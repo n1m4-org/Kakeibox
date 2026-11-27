@@ -6,6 +6,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
@@ -32,6 +33,7 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.currentState
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -71,8 +73,8 @@ import java.time.LocalDate
 class DailyBudgetWidget : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
-    /** 縦1マスと2マス以上で配置を切り替える */
-    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(WIDGET_SMALL, WIDGET_TALL))
+    /** 実際のサイズで配置（1段・カード・ドーナツ）を切り替える。[budgetWidgetLayout] */
+    override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repo = AppGraph.repository(context)
@@ -99,7 +101,9 @@ class DailyBudgetWidget : GlanceAppWidget() {
 
     @Composable
     private fun Content(context: Context, target: BudgetTarget, status: DailyBudgetStatus?) {
-        val compact = LocalSize.current.isCompact()
+        val size = LocalSize.current
+        val layout = budgetWidgetLayout(size)
+        val compact = layout == BudgetWidgetLayout.ROW || layout == BudgetWidgetLayout.ROW_WIDE
         val tapAction = if (status == null) {
             actionStartActivity(MainActivity.openBudgetsIntent(context))
         } else {
@@ -109,12 +113,12 @@ class DailyBudgetWidget : GlanceAppWidget() {
         val addAction = actionStartActivity<QuickAddActivity>(
             (target as? BudgetTarget.Of)?.let { actionParametersOf(CATEGORY_PARAM to it.category.name) } ?: actionParametersOf(),
         )
-        val icon = @Composable {
+        val icon: @Composable (Int) -> Unit = { iconSize ->
             Image(
                 provider = ImageProvider(target.widgetIcon),
                 contentDescription = target.label,
                 colorFilter = ColorFilter.tint(ColorProvider(Color(target.color))),
-                modifier = GlanceModifier.size(18.dp),
+                modifier = GlanceModifier.size(iconSize.dp),
             )
         }
         val addButton = @Composable {
@@ -122,28 +126,64 @@ class DailyBudgetWidget : GlanceAppWidget() {
                 imageProvider = ImageProvider(R.drawable.ic_add),
                 contentDescription = "支出を追加",
                 onClick = addAction,
-                modifier = GlanceModifier.size(if (compact) 28.dp else 32.dp),
+                modifier = GlanceModifier.size(if (compact || layout == BudgetWidgetLayout.DONUT) 28.dp else 32.dp),
             )
+        }
+        val background = GlanceModifier.fillMaxSize()
+            .background(GlanceTheme.colors.widgetBackground)
+            .cornerRadius(16.dp)
+            .clickable(tapAction)
+
+        when (layout) {
+            BudgetWidgetLayout.DONUT -> {
+                // 2×2：中央にドーナツ（中にアイコン・残り・予算）、右上に＋
+                val donut = (minOf(size.width, size.height) - 16.dp) * 0.8f
+                Box(background.padding(8.dp), contentAlignment = Alignment.Center) {
+                    Donut(context, donut, status) {
+                        icon(16)
+                        DonutCenter(status, donut)
+                    }
+                    Box(GlanceModifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) { addButton() }
+                }
+                return
+            }
+            BudgetWidgetLayout.DONUT_LABELED -> {
+                // 2×3：名前の行＋その下にドーナツ（中に残り・予算）
+                Column(background.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    Header(target, icon, addButton)
+                    val donut = minOf(size.width - 24.dp, size.height - 16.dp - HEADER_HEIGHT - 8.dp)
+                    Box(GlanceModifier.fillMaxWidth().defaultWeight(), contentAlignment = Alignment.Center) {
+                        Donut(context, donut, status) { DonutCenter(status, donut) }
+                    }
+                }
+                return
+            }
+            else -> Unit
         }
 
         Column(
-            modifier = GlanceModifier.fillMaxSize()
-                .background(GlanceTheme.colors.widgetBackground)
-                .cornerRadius(16.dp)
-                .padding(horizontal = 12.dp, vertical = if (compact) 4.dp else 8.dp)
-                .clickable(tapAction),
+            modifier = background.padding(horizontal = 12.dp, vertical = if (compact) 4.dp else 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (compact) {
-                // 縦1マス：アイコン・残り / 予算・＋ の1行と、細いバー
+                // 縦1マス：アイコン・残り / 予算・＋ の1行と、細いバー。4マス幅以上は金額を右寄せ
+                val wide = layout == BudgetWidgetLayout.ROW_WIDE
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    icon()
-                    Spacer(GlanceModifier.width(6.dp))
+                    icon(18)
+                    Spacer(if (wide) GlanceModifier.defaultWeight() else GlanceModifier.width(6.dp))
                     if (status == null) {
-                        Text("未設定", style = TextStyle(color = WidgetText.sub, fontSize = 13.sp), modifier = GlanceModifier.defaultWeight())
+                        Text(
+                            "未設定",
+                            style = TextStyle(color = WidgetText.sub, fontSize = 13.sp),
+                            modifier = if (wide) GlanceModifier else GlanceModifier.defaultWeight(),
+                        )
                     } else {
-                        Row(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.Bottom) { Amount(status, 16) }
+                        Row(
+                            if (wide) GlanceModifier else GlanceModifier.defaultWeight(),
+                            verticalAlignment = Alignment.Bottom,
+                        ) { Amount(status, 16) }
                     }
+                    if (wide) Spacer(GlanceModifier.width(10.dp))
                     addButton()
                 }
                 if (status != null) {
@@ -153,18 +193,8 @@ class DailyBudgetWidget : GlanceAppWidget() {
                 return@Column
             }
 
-            // 2マス以上：アイコン・名前・＋／残り / 予算／バー
-            Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                icon()
-                Spacer(GlanceModifier.width(6.dp))
-                Text(
-                    target.label,
-                    style = TextStyle(color = WidgetText.main, fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                    modifier = GlanceModifier.defaultWeight(),
-                    maxLines = 1,
-                )
-                addButton()
-            }
+            // 横長の2マス以上：アイコン・名前・＋／残り / 予算／バー
+            Header(target, icon, addButton)
             if (status == null) {
                 Text("未設定（タップで設定）", style = TextStyle(color = WidgetText.sub, fontSize = 13.sp))
                 return@Column
@@ -173,6 +203,63 @@ class DailyBudgetWidget : GlanceAppWidget() {
             Spacer(GlanceModifier.height(4.dp))
             Bar(status, 6)
         }
+    }
+
+    /** アイコン・名前・＋ の行 */
+    @Composable
+    private fun Header(target: BudgetTarget, icon: @Composable (Int) -> Unit, addButton: @Composable () -> Unit) {
+        Row(GlanceModifier.fillMaxWidth().height(HEADER_HEIGHT), verticalAlignment = Alignment.CenterVertically) {
+            icon(18)
+            Spacer(GlanceModifier.width(6.dp))
+            Text(
+                target.label,
+                style = TextStyle(color = WidgetText.main, fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                modifier = GlanceModifier.defaultWeight(),
+                maxLines = 1,
+            )
+            addButton()
+        }
+    }
+
+    /** ドーナツ（輪は Bitmap）と、その中央の内容。未設定なら輪は下地だけ */
+    @Composable
+    private fun Donut(context: Context, diameter: Dp, status: DailyBudgetStatus?, center: @Composable () -> Unit) {
+        val d = diameter.coerceAtLeast(40.dp)
+        val px = (d.value * context.resources.displayMetrics.density).toInt().coerceIn(40, MAX_DONUT_PX)
+        val ratio = status?.ratio ?: 0f
+        val bitmap = remember(px, ratio) { donutBitmap(px, ratio) }
+        Box(GlanceModifier.size(d), contentAlignment = Alignment.Center) {
+            Image(
+                provider = ImageProvider(bitmap),
+                contentDescription = null,
+                modifier = GlanceModifier.size(d),
+            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) { center() }
+        }
+    }
+
+    /** ドーナツの中：残り（大・超過は赤）と「/ 予算」。文字の大きさは直径に合わせる */
+    @Composable
+    private fun DonutCenter(status: DailyBudgetStatus?, diameter: Dp) {
+        if (status == null) {
+            Text("未設定", style = TextStyle(color = WidgetText.sub, fontSize = 12.sp))
+            return
+        }
+        val amountSize = (diameter.value / 7f).coerceIn(12f, 22f)
+        Text(
+            signedYen(status.remaining),
+            style = TextStyle(
+                color = if (status.remaining < 0) WidgetText.over else WidgetText.main,
+                fontSize = amountSize.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+            maxLines = 1,
+        )
+        Text(
+            budgetSuffix(status.todayBudget).trim(),
+            style = TextStyle(color = WidgetText.sub, fontSize = (amountSize * 0.55f).coerceAtLeast(10f).sp),
+            maxLines = 1,
+        )
     }
 
     /** 残り（大・超過は赤）＋「 / 今日の予算」（小） */
@@ -203,6 +290,12 @@ class DailyBudgetWidget : GlanceAppWidget() {
     companion object {
         /** ウィジェットごとに保存する予算対象のキー */
         val TARGET_KEY: Preferences.Key<String> = stringPreferencesKey("budget_target")
+
+        /** 名前の行の高さ */
+        private val HEADER_HEIGHT = 32.dp
+
+        /** ドーナツの Bitmap の最大サイズ（ウィジェットに渡せる画像の容量に収める） */
+        private const val MAX_DONUT_PX = 420
 
         /** Glance は ActionParameters を Intent の extra として渡す */
         private val CATEGORY_PARAM = ActionParameters.Key<String>(QuickAddActivity.EXTRA_CATEGORY)

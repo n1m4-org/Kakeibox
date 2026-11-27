@@ -39,3 +39,29 @@ val WIDGET_TALL = DpSize(110.dp, 90.dp)
 
 /** 高さが足りないときはコンパクトな配置にする */
 fun DpSize.isCompact(): Boolean = height < WIDGET_TALL.height
+
+/** 今日の予算ウィジェットの配置 */
+enum class BudgetWidgetLayout {
+    /** 縦1マス（2〜3マス幅）：アイコン・金額・＋ を詰めて1行 */
+    ROW,
+    /** 縦1マス（4マス幅以上）：アイコンは左端、金額は右寄せ */
+    ROW_WIDE,
+    /** 横長の2マス以上（3×2・4×2 など）：名前・金額・バー */
+    CARD,
+    /** 正方形に近い（2×2・3×3）：ドーナツ */
+    DONUT,
+    /** 縦長（2×3）：名前の行＋ドーナツ */
+    DONUT_LABELED,
+}
+
+/**
+ * ウィジェットの実寸から配置を決める。
+ * ランチャーによって1マスの実寸が違うので、マス数ではなく高さと縦横比で判定する。
+ */
+fun budgetWidgetLayout(size: DpSize): BudgetWidgetLayout = when {
+    size.height < WIDGET_TALL.height ->
+        if (size.width >= 250.dp) BudgetWidgetLayout.ROW_WIDE else BudgetWidgetLayout.ROW
+    size.height >= 100.dp && size.width < size.height * 1.5f ->
+        if (size.height >= size.width * 1.3f) BudgetWidgetLayout.DONUT_LABELED else BudgetWidgetLayout.DONUT
+    else -> BudgetWidgetLayout.CARD
+}
