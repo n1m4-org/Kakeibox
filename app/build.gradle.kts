@@ -5,6 +5,12 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+/** CI（GitHub Actions）から渡すバージョン番号。ローカルでは 1 */
+val ciVersionCode: Int = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+
+/** 本番用の署名鍵（GitHub の Secrets から CI が渡す）。なければ release は署名しない */
+val releaseKeystore: File? = System.getenv("KEYSTORE_FILE")?.let { file(it) }?.takeIf { it.exists() }
+
 android {
     namespace = "com.kakeibox"
     compileSdk = 35
@@ -13,12 +19,24 @@ android {
         applicationId = "com.kakeibox"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = ciVersionCode
+        versionName = "1.0.$ciVersionCode"
+    }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -32,6 +50,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

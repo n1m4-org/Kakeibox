@@ -28,6 +28,9 @@ import com.kakeibox.data.Recurring
 import com.kakeibox.data.RecurringRunner
 import com.kakeibox.data.SearchFilter
 import com.kakeibox.data.Template
+import com.kakeibox.BuildConfig
+import com.kakeibox.update.ReleaseInfo
+import com.kakeibox.update.Updater
 import com.kakeibox.data.AppDatabase
 import com.kakeibox.data.Categories
 import com.kakeibox.data.CategoryConfig
@@ -216,6 +219,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun deleteRecurringById(id: Long) = viewModelScope.launch { recurringDao.find(id)?.let { recurringDao.delete(it) } }
+
+    /** 起動時の自動確認：1日1回、新しい版があれば返す（なければ・失敗時は null） */
+    suspend fun autoCheckUpdate(now: Long = System.currentTimeMillis()): ReleaseInfo? {
+        val s = settingsStore.settings.value
+        if (!s.autoUpdateCheck || now - s.lastUpdateCheck < 24 * 60 * 60 * 1000L) return null
+        val info = runCatching { Updater.fetchLatest() }.getOrNull()
+        settingsStore.update { it.copy(lastUpdateCheck = now) }
+        return info?.takeIf { Updater.isNewer(it, BuildConfig.VERSION_CODE) }
+    }
 
     /** カテゴリの設定（追加・並び順・非表示） */
     private val categoryStore = AppGraph.categoryStore(app)

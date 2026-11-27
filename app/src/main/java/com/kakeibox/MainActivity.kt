@@ -49,6 +49,8 @@ import androidx.lifecycle.lifecycleScope
 import com.kakeibox.data.RecurringRunner
 import com.kakeibox.data.Today
 import com.kakeibox.ui.MainViewModel
+import com.kakeibox.ui.components.UpdateDialog
+import com.kakeibox.update.ReleaseInfo
 import com.kakeibox.ui.quickadd.QuickAddContent
 import com.kakeibox.ui.screens.AppearanceScreen
 import com.kakeibox.ui.screens.BudgetScreen
@@ -178,6 +180,22 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
             val scope = rememberCoroutineScope()
             var showQuickAdd by rememberSaveable { mutableStateOf(false) }
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+            // 起動時のアップデート確認（1日1回）。新しい版があればスナックバーで知らせる
+            var updateInfo by remember { mutableStateOf<ReleaseInfo?>(null) }
+            var showUpdate by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) {
+                vm.autoCheckUpdate()?.let { info ->
+                    updateInfo = info
+                    val result = snackbar.showSnackbar(
+                        message = "新しいバージョン ${info.versionName} があります",
+                        actionLabel = "更新",
+                        duration = SnackbarDuration.Long,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) showUpdate = true
+                }
+            }
+            if (showUpdate) updateInfo?.let { UpdateDialog(it) { showUpdate = false } }
 
             // クイック入力の保存結果をSnackbarで通知（取り消し可）
             LaunchedEffect(Unit) {

@@ -76,6 +76,12 @@ app/src/main/java/com/kakeibox/
 
 計算ロジック（期間・繰り越し・定期の記録日・給料日・通知判定・検索・CSV・バックアップなど）は `data/` の純粋な関数にまとめ、`app/src/test/` に単体テストがあります。
 
+## 配布とアプリ内更新
+- 開発ブランチに push すると GitHub Actions（`.github/workflows/release.yml`）がテスト → 本番用の鍵で署名した APK をビルドし、
+  GitHub Releases に `v1.0.<番号>`（APK は `kakeibox-<versionCode>.apk`）として公開します
+- アプリは起動時（1日1回）と「設定 > アプリ > アップデートを確認」で最新版を確認し、［更新］でダウンロード → Android の更新画面を開きます
+- 署名鍵は GitHub の Secrets（`KEYSTORE_BASE64`・`KEYSTORE_PASSWORD`・`KEY_ALIAS`・`KEY_PASSWORD`）に登録します。鍵ファイルはリポジトリに入れないでください
+
 ## ビルド
 Android Studio でプロジェクトを開いて実行するか、コマンドラインで以下を実行します。
 

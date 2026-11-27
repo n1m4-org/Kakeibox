@@ -38,6 +38,10 @@ data class AppSettings(
     val backgroundBlur: Int = 30,
     /** 背景の明るさ（-100=暗く 〜 100=明るく） */
     val backgroundBrightness: Int = 0,
+    /** 起動時に新しいバージョンを確認する（1日1回） */
+    val autoUpdateCheck: Boolean = true,
+    /** 最後に自動で確認した時刻（ミリ秒） */
+    val lastUpdateCheck: Long = 0,
 )
 
 /** 設定の保存（SharedPreferences）と購読 */
@@ -73,6 +77,8 @@ class SettingsStore(context: Context) {
             .putLong(KEY_BG_VERSION, s.backgroundVersion)
             .putInt(KEY_BG_BLUR, s.backgroundBlur)
             .putInt(KEY_BG_BRIGHTNESS, s.backgroundBrightness)
+            .putBoolean(KEY_AUTO_UPDATE, s.autoUpdateCheck)
+            .putLong(KEY_LAST_UPDATE_CHECK, s.lastUpdateCheck)
             .apply()
     }
 
@@ -89,6 +95,8 @@ class SettingsStore(context: Context) {
         const val KEY_BG_VERSION = "background_version"
         const val KEY_BG_BLUR = "background_blur"
         const val KEY_BG_BRIGHTNESS = "background_brightness"
+        const val KEY_AUTO_UPDATE = "auto_update_check"
+        const val KEY_LAST_UPDATE_CHECK = "last_update_check"
 
         fun load(p: SharedPreferences) = AppSettings(
             theme = p.getString(KEY_THEME, null)?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
@@ -103,6 +111,8 @@ class SettingsStore(context: Context) {
             backgroundVersion = p.getLong(KEY_BG_VERSION, 0),
             backgroundBlur = p.getInt(KEY_BG_BLUR, 30).coerceIn(0, 100),
             backgroundBrightness = p.getInt(KEY_BG_BRIGHTNESS, 0).coerceIn(-100, 100),
+            autoUpdateCheck = p.getBoolean(KEY_AUTO_UPDATE, true),
+            lastUpdateCheck = p.getLong(KEY_LAST_UPDATE_CHECK, 0),
         )
     }
 }

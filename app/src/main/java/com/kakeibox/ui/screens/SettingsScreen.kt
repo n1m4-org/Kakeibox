@@ -10,6 +10,14 @@ import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.SystemUpdate
+import androidx.compose.material.icons.outlined.Update
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.kakeibox.BuildConfig
+import com.kakeibox.ui.components.UpdateDialog
+import com.kakeibox.update.ReleaseInfo
+import com.kakeibox.update.Updater
 import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material.icons.outlined.Lock
 import android.widget.Toast
@@ -75,6 +83,9 @@ fun SettingsScreen(vm: MainViewModel, contentPadding: PaddingValues, navigation:
     val context = LocalContext.current
     var allowed by remember { mutableStateOf(Notifications.canPost(context)) }
     var pending by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val scope = rememberCoroutineScope()
+    var updateInfo by remember { mutableStateOf<ReleaseInfo?>(null) }
+    updateInfo?.let { UpdateDialog(it) { updateInfo = null } }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         allowed = granted
         pending?.invoke()
@@ -85,6 +96,19 @@ fun SettingsScreen(vm: MainViewModel, contentPadding: PaddingValues, navigation:
         onUpdate = vm::updateSettings,
         notificationsAllowed = allowed,
         dataActions = rememberDataActions(),
+        onCheckUpdate = {
+            scope.launch {
+                runCatching { Updater.fetchLatest() }
+                    .onSuccess { info ->
+                        when {
+                            info == null -> Toast.makeText(context, "まだ公開されているバージョンがありません", Toast.LENGTH_SHORT).show()
+                            Updater.isNewer(info, BuildConfig.VERSION_CODE) -> updateInfo = info
+                            else -> Toast.makeText(context, "最新のバージョンです", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    .onFailure { Toast.makeText(context, "確認できませんでした（通信を確認してください）", Toast.LENGTH_SHORT).show() }
+            }
+        },
         onAppLockChange = { on ->
             val activity = context as? FragmentActivity
             when {
@@ -125,6 +149,7 @@ internal fun SettingsContent(
     withNotificationPermission: (action: () -> Unit) -> Unit = { it() },
     dataActions: DataActions = DataActions(),
     onAppLockChange: (Boolean) -> Unit = {},
+    onCheckUpdate: () -> Unit = {},
 ) {
     var dialog by rememberSaveable { mutableStateOf<SettingsDialog?>(null) }
 
@@ -233,6 +258,20 @@ internal fun SettingsContent(
                 settings.appLock,
                 summary = "起動時と、1分以上たってから戻ったときに指紋・顔認証または端末のPINで解除",
                 onCheckedChange = onAppLockChange,
+            )
+        }
+
+        item { SettingsSection("アプリ") }
+        item {
+            SettingsItem("アップデートを確認", Icons.Outlined.SystemUpdate, "バージョン ${BuildConfig.VERSION_NAME}", onClick = onCheckUpdate)
+        }
+        item {
+            SettingsSwitch(
+                "起動時に自動で確認",
+                Icons.Outlined.Update,
+                settings.autoUpdateCheck,
+                summary = "1日1回、新しいバージョンがあればお知らせ",
+                onCheckedChange = { v -> onUpdate { it.copy(autoUpdateCheck = v) } },
             )
         }
 
