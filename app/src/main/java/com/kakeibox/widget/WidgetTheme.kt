@@ -46,13 +46,13 @@ enum class BudgetWidgetLayout {
     ROW,
     /** 縦1マス（4マス幅以上）：アイコンは左端、金額は右寄せ */
     ROW_WIDE,
-    /** 横長の2マス以上（3×2・4×2 など）：名前・金額・バー */
+    /** 3マス幅×2段など（4マス幅未満の横長）：名前・金額・バー */
     CARD,
     /** 正方形に近い（2×2・3×3）：ドーナツ */
     DONUT,
     /** 縦長（2×3）：名前の行＋ドーナツ */
     DONUT_LABELED,
-    /** 4マス幅×3段以上：超過分をバーの段で積み上げる */
+    /** 4マス幅×2段以上：超過分をバーの段で積み上げる */
     STACK,
 }
 
@@ -83,7 +83,7 @@ fun stackedBars(spent: Long, scale: Long, maxBars: Int): StackedBars {
 fun budgetWidgetLayout(size: DpSize): BudgetWidgetLayout = when {
     size.height < WIDGET_TALL.height ->
         if (size.width >= 250.dp) BudgetWidgetLayout.ROW_WIDE else BudgetWidgetLayout.ROW
-    size.width >= 250.dp && size.height >= 170.dp -> BudgetWidgetLayout.STACK
+    size.width >= 250.dp -> BudgetWidgetLayout.STACK
     size.height >= 100.dp && size.width < size.height * 1.5f ->
         if (size.height >= size.width * 1.3f) BudgetWidgetLayout.DONUT_LABELED else BudgetWidgetLayout.DONUT
     else -> BudgetWidgetLayout.CARD

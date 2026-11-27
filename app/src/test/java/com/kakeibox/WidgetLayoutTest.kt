@@ -32,12 +32,14 @@ class WidgetLayoutTest {
     @Test
     fun wideTwoRowsIsCard() {
         assertEquals(BudgetWidgetLayout.CARD, layout(180, 110))  // 3×2
-        assertEquals(BudgetWidgetLayout.CARD, layout(320, 150))  // 4×2
+        assertEquals(BudgetWidgetLayout.CARD, layout(235, 150))  // 3×2
         assertEquals(BudgetWidgetLayout.CARD, layout(150, 95))   // 低めの2段
     }
 
     @Test
-    fun fourWideThreeTallIsStack() {
+    fun fourWideTwoOrMoreTallIsStack() {
+        assertEquals(BudgetWidgetLayout.STACK, layout(250, 110)) // 4×2（最小）
+        assertEquals(BudgetWidgetLayout.STACK, layout(320, 150)) // 4×2
         assertEquals(BudgetWidgetLayout.STACK, layout(250, 180)) // 4×3（最小）
         assertEquals(BudgetWidgetLayout.STACK, layout(320, 230)) // 4×3
         assertEquals(BudgetWidgetLayout.STACK, layout(400, 400)) // 5×5

@@ -159,7 +159,7 @@ class DailyBudgetWidget : GlanceAppWidget() {
                 return
             }
             BudgetWidgetLayout.STACK -> {
-                // 4×3以上：名前の行・残り / 予算・予算1本分ずつのバー（2段目以降が超過分）
+                // 4×2以上：名前の行・残り / 予算・予算1本分ずつのバー（2段目以降が超過分）
                 Column(background.padding(horizontal = 12.dp, vertical = 8.dp)) {
                     Header(target, icon, addButton)
                     if (status == null) {
