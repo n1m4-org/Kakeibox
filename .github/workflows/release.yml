@@ -36,20 +36,62 @@ jobs:
       - name: 署名鍵を用意
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
-            echo "KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
-            echo "SIGNED=true" >> "$GITHUB_ENV"
-          else
-            echo "::warning::署名鍵が未登録のため、Release は作成しません"
-          fi
-
-      - name: テストとビルド
-        env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::署名鍵が未登録のため、Release は作成しません"
+            exit 0
+          fi
+          # 貼り付け時に混ざった空白・改行を取り除く
+          trim() { printf '%s' "$1" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'; }
+          STORE_PASS=$(trim "$KEYSTORE_PASSWORD")
+          ALIAS=$(trim "$KEY_ALIAS")
+          KEY_PASS=$(trim "$KEY_PASSWORD")
+          KS="$RUNNER_TEMP/release.jks"
+          printf '%s' "$KEYSTORE_BASE64" | tr -d ' \r\n\t' | base64 -d > "$KS"
+
+          if ! keytool -list -keystore "$KS" -storepass "$STORE_PASS" > "$RUNNER_TEMP/ks.txt" 2>&1; then
+            echo "::error::鍵ファイルを開けません（KEYSTORE_BASE64 か KEYSTORE_PASSWORD が違います）"
+            exit 1
+          fi
+          # 別名が一致しなければ、鍵ファイル内の唯一の別名を使う
+          ALIASES=$(grep -E 'PrivateKeyEntry' "$RUNNER_TEMP/ks.txt" | cut -d, -f1)
+          if ! printf '%s\n' "$ALIASES" | grep -qx "$ALIAS"; then
+            if [ "$(printf '%s\n' "$ALIASES" | grep -c .)" = "1" ]; then
+              echo "::warning::KEY_ALIAS が鍵ファイルと一致しないため、鍵ファイル内の別名を使います"
+              ALIAS="$ALIASES"
+            else
+              echo "::error::KEY_ALIAS が鍵ファイル内に見つかりません"
+              exit 1
+            fi
+          fi
+          # 鍵のパスワード：PKCS12 はストアと同じ値しか使えないので、ストアのパスワードを使う
+          keyok() { keytool -certreq -keystore "$KS" -storepass "$STORE_PASS" -alias "$ALIAS" -keypass "$1" > /dev/null 2>&1; }
+          if grep -q 'Keystore type: PKCS12' "$RUNNER_TEMP/ks.txt"; then
+            KEY_PASS="$STORE_PASS"
+          elif ! keyok "$KEY_PASS"; then
+            if keyok "$STORE_PASS"; then
+              echo "::warning::KEY_PASSWORD が違うため、KEYSTORE_PASSWORD を使います"
+              KEY_PASS="$STORE_PASS"
+            else
+              echo "::error::鍵を読み出せません（KEY_PASSWORD が違います）"
+              exit 1
+            fi
+          fi
+          echo "::add-mask::$STORE_PASS"
+          echo "::add-mask::$KEY_PASS"
+          {
+            echo "KEYSTORE_FILE=$KS"
+            echo "KEYSTORE_PASSWORD=$STORE_PASS"
+            echo "KEY_ALIAS=$ALIAS"
+            echo "KEY_PASSWORD=$KEY_PASS"
+            echo "SIGNED=true"
+          } >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/ks.txt"
+
+      - name: テストとビルド
         run: ./gradlew --no-daemon testDebugUnitTest assembleRelease
 
       - name: Release を作成
