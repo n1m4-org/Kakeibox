@@ -10,6 +10,7 @@ import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.Update
 import androidx.compose.runtime.rememberCoroutineScope
@@ -86,6 +87,18 @@ fun SettingsScreen(vm: MainViewModel, contentPadding: PaddingValues, navigation:
     val scope = rememberCoroutineScope()
     var updateInfo by remember { mutableStateOf<ReleaseInfo?>(null) }
     updateInfo?.let { UpdateDialog(it) { updateInfo = null } }
+    // レシート読み取り（AI）の API キー
+    val keyStore = remember { com.kakeibox.AppGraph.apiKeyStore(context) }
+    val hasKey by keyStore.hasKey.collectAsStateWithLifecycle()
+    var editKey by rememberSaveable { mutableStateOf(false) }
+    if (editKey) {
+        ApiKeyDialog(
+            masked = if (hasKey) keyStore.masked() else null,
+            onSave = { keyStore.set(it); editKey = false },
+            onClear = { keyStore.clear(); editKey = false },
+            onDismiss = { editKey = false },
+        )
+    }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         allowed = granted
         pending?.invoke()
@@ -96,6 +109,8 @@ fun SettingsScreen(vm: MainViewModel, contentPadding: PaddingValues, navigation:
         onUpdate = vm::updateSettings,
         notificationsAllowed = allowed,
         dataActions = rememberDataActions(),
+        receiptKeyLabel = if (hasKey) "登録済み（${keyStore.masked() ?: ""}）" else "未登録（タップして登録）",
+        onReceiptKey = { editKey = true },
         onCheckUpdate = {
             scope.launch {
                 runCatching { Updater.fetchLatest() }
@@ -150,6 +165,8 @@ internal fun SettingsContent(
     dataActions: DataActions = DataActions(),
     onAppLockChange: (Boolean) -> Unit = {},
     onCheckUpdate: () -> Unit = {},
+    receiptKeyLabel: String = "未登録",
+    onReceiptKey: () -> Unit = {},
 ) {
     var dialog by rememberSaveable { mutableStateOf<SettingsDialog?>(null) }
 
@@ -174,6 +191,9 @@ internal fun SettingsContent(
         }
         item {
             SettingsItem("定期の収支", Icons.Outlined.EventRepeat, "家賃・サブスク・給料などを毎月自動で記録", onClick = navigation.openRecurring)
+        }
+        item {
+            SettingsItem("レシート読み取り（AI）の API キー", Icons.Outlined.DocumentScanner, receiptKeyLabel, onClick = onReceiptKey)
         }
 
         item { SettingsSection("期間") }

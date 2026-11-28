@@ -19,6 +19,13 @@ object AppGraph {
     @Volatile private var repo: TransactionRepository? = null
     @Volatile private var budget: BudgetStore? = null
     @Volatile private var settings: SettingsStore? = null
+    @Volatile private var apiKeys: com.kakeibox.receipt.ApiKeyStore? = null
+
+    /** レシート読み取り（AI）の API キー */
+    fun apiKeyStore(context: Context): com.kakeibox.receipt.ApiKeyStore =
+        apiKeys ?: synchronized(this) {
+            apiKeys ?: com.kakeibox.receipt.ApiKeyStore(context.applicationContext).also { apiKeys = it }
+        }
 
     fun repository(context: Context): TransactionRepository =
         repo ?: synchronized(this) {

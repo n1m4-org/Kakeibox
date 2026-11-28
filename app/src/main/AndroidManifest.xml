@@ -8,6 +8,8 @@
     <application
         android:name=".KakeiboxApplication"
         android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -22,6 +24,30 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 他のアプリの「共有」からレシート画像を受け取る -->
+        <activity
+            android:name=".ReceiptShareActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:label="レシートを読み取る"
+            android:theme="@style/Theme.Kakeibox.Translucent">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity>
+
+        <!-- 端末の文字認識（日本語）のモデルを、インストール時に Google Play 開発者サービスで用意する -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr_ja" />
 
         <!-- ウィジェットから開くクイック入力 -->
         <activity

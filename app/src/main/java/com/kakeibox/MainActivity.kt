@@ -5,6 +5,9 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import com.kakeibox.security.AppLock
 import com.kakeibox.security.LockScreen
 import androidx.activity.compose.setContent
@@ -13,10 +16,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
@@ -59,6 +64,7 @@ import com.kakeibox.ui.screens.CalendarScreen
 import com.kakeibox.data.BudgetKind
 import com.kakeibox.ui.screens.EditScreen
 import com.kakeibox.ui.screens.HomeScreen
+import com.kakeibox.ui.screens.ReceiptScreen
 import com.kakeibox.ui.screens.ReportScreen
 import com.kakeibox.ui.screens.SettingsNavigation
 import com.kakeibox.ui.screens.RecurringEditScreen
@@ -70,6 +76,7 @@ import com.kakeibox.ui.theme.KakeiboxTheme
 import com.kakeibox.ui.theme.KakeiboxBackground
 import com.kakeibox.ui.theme.TransparentSurfaces
 import com.kakeibox.ui.theme.acrylic
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -139,6 +146,7 @@ class MainActivity : FragmentActivity() {
 
         fun openEditIntent(context: Context): Intent = startIntent(context, Routes.edit())
         fun openBudgetsIntent(context: Context): Intent = startIntent(context, Routes.budgets(BudgetKind.DAILY))
+        fun openReceiptIntent(context: Context): Intent = startIntent(context, Routes.RECEIPT)
     }
 }
 
@@ -156,6 +164,7 @@ internal object Routes {
     const val RECURRING = "recurring"
     const val RECURRING_EDIT = "recurring/edit?id={id}"
     fun recurringEdit(id: Long?) = if (id == null) "recurring/edit" else "recurring/edit?id=$id"
+    const val RECEIPT = "receipt"
     const val EDIT = "edit?id={id}"
     fun edit(id: Long? = null) = if (id == null) "edit" else "edit?id=$id"
 }
@@ -242,8 +251,14 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
                 },
                 floatingActionButton = {
                     if (tab == Routes.HOME) {
-                        FloatingActionButton(onClick = { showQuickAdd = true }) {
-                            Icon(Icons.Outlined.Add, "支出を追加")
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            SmallFloatingActionButton(onClick = { nav.navigate(Routes.RECEIPT) }) {
+                                Icon(Icons.Outlined.DocumentScanner, "レシートを読み取る")
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            FloatingActionButton(onClick = { showQuickAdd = true }) {
+                                Icon(Icons.Outlined.Add, "支出を追加")
+                            }
                         }
                     }
                 },
@@ -302,6 +317,9 @@ fun KakeiboxApp(startRoute: String? = null, vm: MainViewModel = viewModel()) {
         ) { entry ->
             val id = entry.arguments?.getLong("id")?.takeIf { it >= 0 }
             TransparentSurfaces { EditScreen(vm, id, onDone = { nav.popBackStack() }) }
+        }
+        composable(Routes.RECEIPT) {
+            TransparentSurfaces { ReceiptScreen(onBack = { nav.popBackStack() }) }
         }
         composable(Routes.CATEGORIES) {
             TransparentSurfaces { CategoriesScreen(vm, onBack = { nav.popBackStack() }) }

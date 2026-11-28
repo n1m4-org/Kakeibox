@@ -80,10 +80,16 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    // レシート読み取り：端末の文字検出（ML Kit 日本語）と Claude API
+    implementation(libs.mlkit.text.japanese)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.androidx.exifinterface)
+    implementation(libs.anthropic.java)
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)
     // Android の org.json はユニットテストではスタブのため、実装を追加
     testImplementation(libs.org.json)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
 }

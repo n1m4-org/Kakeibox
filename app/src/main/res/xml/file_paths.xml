@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- アプリ内更新でダウンロードした APK を、Android のインストール画面に渡すための公開範囲 -->
+<!-- FileProvider で他のアプリに渡すファイルの公開範囲 -->
 <paths>
+    <!-- アプリ内更新でダウンロードした APK（インストール画面に渡す） -->
     <cache-path name="updates" path="updates/" />
+    <!-- レシートの撮影先（カメラアプリに書き込んでもらう） -->
+    <cache-path name="receipts" path="receipts/" />
 </paths>

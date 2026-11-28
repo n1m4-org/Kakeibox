@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12 以降のバックアップ・機種変更：レシート読み取りの API キーは端末の外に出さない -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="sharedpref" path="." />
+        <include domain="database" path="." />
+        <include domain="file" path="." />
+        <exclude domain="sharedpref" path="kakeibox_secrets.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="sharedpref" path="." />
+        <include domain="database" path="." />
+        <include domain="file" path="." />
+        <exclude domain="sharedpref" path="kakeibox_secrets.xml" />
+    </device-transfer>
+</data-extraction-rules>

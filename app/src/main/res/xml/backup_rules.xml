@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 以前の自動バックアップ：レシート読み取りの API キーは端末の外に出さない -->
+<full-backup-content>
+    <include domain="sharedpref" path="." />
+    <include domain="database" path="." />
+    <include domain="file" path="." />
+    <exclude domain="sharedpref" path="kakeibox_secrets.xml" />
+</full-backup-content>
